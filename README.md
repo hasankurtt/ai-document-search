@@ -58,7 +58,7 @@ AI destekli akıllı doküman arama ve soru-cevap sistemi. GPT-4 ve Pinecone tek
 
 ### Adım 1: Projeyi Klonla
 ```bash
-git clone https://github.com/yourusername/ai-document-search.git
+git clone https://github.com/hasankurtt/ai-document-search.git
 cd ai-document-search
 ```
 
