@@ -195,8 +195,7 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 ## 👤 Geliştirici
 
 **Your Name**
-- GitHub: [@yourusername](https://github.com/yourusername)
-- Email: your.email@example.com
+- GitHub: [@hasankurtt](https://github.com/hasankurtt)
 
 ## 🙏 Teşekkürler
 
