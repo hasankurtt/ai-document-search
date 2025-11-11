@@ -138,8 +138,8 @@ class DocumentProcessor:
         
         # 1. Text çıkar
         text = self.extract_text(file_path)
-        if not text or len(text.strip()) < 10:
-            raise Exception("Yetersiz text")
+        if not text or len(text.strip()) < 50:
+            raise Exception(f"Yetersiz text. Dosyada {len(text.strip()) if text else 0} karakter var, minimum 50 karakter gerekli.")            
         
         # 2. Chunk'lara böl
         chunks = self.chunk_text(text)
