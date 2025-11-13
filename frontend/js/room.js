@@ -1,460 +1,354 @@
-// Premium emoji collections
-const emojiCollections = {
-    education: [
-        '📚', '📖', '📝', '✏️', '📕', '📗', '📘', '📙', '📓', '📔',
-        '🎓', '🎯', '📊', '📈', '📉', '🗂️', '📋', '📌', '📍', '🔖',
-        '🧮', '📐', '📏', '✂️', '🖊️', '🖍️', '🖌️', '🔬', '🔭', '⚗️',
-        '📚', '🏫', '🎒', '✍️', '📑', '📄', '📃', '🗃️', '🗄️', '📇'
-    ],
-    work: [
-        '💼', '👔', '💻', '⌨️', '🖥️', '📱', '☎️', '📞', '📠', '🗃️',
-        '📂', '📁', '📄', '📃', '📑', '🗒️', '📇', '📊', '📈', '📉',
-        '��', '💵', '💴', '💶', '💷', '💳', '🏢', '🏦', '🏭', '⚖️',
-        '🔨', '🔧', '⚙️', '🛠️', '📋', '📌', '📍', '✅', '📝', '🗓️'
-    ],
-    science: [
-        '🔬', '🔭', '⚗️', '🧪', '🧬', '🦠', '💉', '��', '🌡️', '🧲',
-        '⚛️', '🔆', '💡', '🔋', '🔌', '💻', '🖥️', '⚙️', '🛠️', '🔧',
-        '🌍', '🌎', '🌏', '🪐', '🌙', '⭐', '✨', '⚡', '🔥', '💧',
-        '🧫', '🦴', '🧠', '🫀', '🫁', '🌋', '🏔️', '🌊', '☄️', '🌠'
-    ],
-    creative: [
-        '🎨', '🖌️', '🖍️', '✏️', '🎭', '🎬', '🎪', '🎸', '🎹', '🎺',
-        '🎻', '🥁', '🎤', '🎧', '📻', '📷', '📸', '📹', '🎥', '📽️',
-        '🎮', '🎯', '🎲', '🎰', '🎳', '♟️', '🧩', '🪀', '🪁', '🎈',
-        '🎉', '🎊', '🎁', '🎀', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️'
-    ],
-    health: [
-        '🏥', '⚕️', '🩺', '💊', '💉', '🩹', '🩼', '🦷', '🧬', '🔬',
-        '❤️', '🫀', '🫁', '🧠', '🦴', '👁️', '🦻', '👃', '👄', '🫂',
-        '🏃', '🚴', '🏋️', '🤸', '🧘', '🥗', '🥤', '🍎', '🥦', '🥕',
-        '💪', '🧘‍♀️', '🧘‍♂️', '🚶', '🏃‍♀️', '🏃‍♂️', '🤾', '⛹️', '🏊', '🚵'
-    ],
-    other: [
-        '⭐', '✨', '💫', '🌟', '⚡', '🔥', '💥', '💢', '💬', '💭',
-        '🎯', '🎪', '🎭', '🎨', '🎬', '🎮', '🎲', '🎰', '🎳', '🎯',
-        '🌈', '☀️', '🌙', '⭐', '💎', '🔮', '🎁', '🎀', '🎊', '🎉',
-        '🚀', '🛸', '🌌', '🔱', '♠️', '♥️', '♦️', '♣️', '🃏', '🎴'
-    ]
-};
+console.log('🚀 Room.js loaded');
 
-const allEmojis = Object.values(emojiCollections).flat();
-
-let selectedEmojiSettings = '📚';
-let currentCategorySettings = 'all';
-
-// Check authentication
-function checkAuth() {
-    const user = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-    
-    if (!user || !token) {
-        window.location.href = 'login.html';
-        return false;
-    }
-    
-    const userData = JSON.parse(user);
-    document.getElementById('userName').textContent = userData.name;
-    
-    return true;
-}
-
-checkAuth();
+// Check auth
+Auth.checkAuth();
 
 // Get room ID from URL
 const urlParams = new URLSearchParams(window.location.search);
 const roomId = urlParams.get('id');
 
+console.log('🏠 Room ID:', roomId);
+
 if (!roomId) {
+    alert('Oda ID bulunamadı!');
     window.location.href = 'dashboard.html';
 }
 
-// Load room data
-let currentRoom = null;
-
-function loadRoom() {
-    const rooms = JSON.parse(localStorage.getItem('chatRooms') || '[]');
-    currentRoom = rooms.find(room => room.id === roomId);
-    
-    if (!currentRoom) {
-        alert('Oda bulunamadı');
+// Load room info
+async function loadRoomInfo() {
+    try {
+        console.log('📡 Loading room info...');
+        const room = await API.get(API_CONFIG.ROOMS.GET(roomId));
+        console.log('✅ Room loaded:', room);
+        
+        document.getElementById('roomEmoji').textContent = room.emoji;
+        document.getElementById('roomName').textContent = room.name;
+        document.getElementById('roomDescription').textContent = room.description || 'Açıklama yok';
+        document.getElementById('docCount').textContent = room.document_count || 0;
+        document.getElementById('chatCount').textContent = room.message_count || 0;
+    } catch (error) {
+        console.error('❌ Error loading room:', error);
+        alert('Oda bilgileri yüklenemedi');
         window.location.href = 'dashboard.html';
-        return;
     }
-    
-    // Update room info
-    document.getElementById('roomEmoji').textContent = currentRoom.emoji;
-    document.getElementById('roomName').textContent = currentRoom.name;
-    document.getElementById('roomDescription').textContent = currentRoom.description || 'Açıklama yok';
-    document.getElementById('docCount').textContent = currentRoom.documents?.length || 0;
-    document.getElementById('chatCount').textContent = currentRoom.messages?.length || 0;
-    
-    // Load documents
-    loadDocuments();
-    
-    // Load messages
-    loadMessages();
+}
+
+// Load user name
+async function loadUserInfo() {
+    try {
+        const user = await Auth.getCurrentUser();
+        document.getElementById('userName').textContent = user.name;
+    } catch (error) {
+        console.error('Error loading user:', error);
+    }
 }
 
 // Load documents
-function loadDocuments() {
-    const documentsList = document.getElementById('documentsList');
-    
-    if (!currentRoom.documents || currentRoom.documents.length === 0) {
-        documentsList.innerHTML = `
-            <div class="empty-docs">
-                <p>Henüz doküman yok</p>
-                <small>Dosyaları yukarıdaki alana sürükleyin</small>
-            </div>
-        `;
-        return;
-    }
-    
-    documentsList.innerHTML = currentRoom.documents.map(doc => `
-        <div class="document-item">
-            <div class="doc-icon">📄</div>
-            <div class="doc-info">
-                <div class="doc-name">${doc.name}</div>
-                <div class="doc-size">${doc.size}</div>
-            </div>
-            <button class="btn-icon-small" onclick="deleteDocument('${doc.id}')" title="Sil">
-                🗑️
-            </button>
-        </div>
-    `).join('');
-}
-
-// Load messages
-function loadMessages() {
-    const chatMessages = document.getElementById('chatMessages');
-    
-    if (!currentRoom.messages || currentRoom.messages.length === 0) {
-        chatMessages.innerHTML = `
-            <div class="welcome-message">
-                <div class="welcome-icon">👋</div>
-                <h3>Hoş Geldiniz!</h3>
-                <p>Bu odaya özel dokümanlar yükleyin ve sorularınızı sorun. AI sizin için dokümanlarınızı analiz edecek ve cevaplar bulacak.</p>
-            </div>
-        `;
-        return;
-    }
-    
-    chatMessages.innerHTML = currentRoom.messages.map(msg => {
-        if (msg.type === 'user') {
-            return `
-                <div class="message user-message">
-                    <div class="message-content">${msg.content}</div>
-                    <div class="message-time">${new Date(msg.timestamp).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</div>
-                </div>
-            `;
+async function loadDocuments() {
+    try {
+        console.log('📄 Loading documents...');
+        const documents = await API.get(API_CONFIG.DOCUMENTS.LIST(roomId));
+        console.log('✅ Documents loaded:', documents);
+        
+        const docList = document.getElementById('documentsList');
+        
+        if (documents.length === 0) {
+            docList.innerHTML = '<p style="padding: 10px; text-align: center; color: #999;">Henüz doküman yok</p>';
         } else {
-            return `
-                <div class="message ai-message">
-                    <div class="message-header">
-                        <span class="ai-badge">✨ AI</span>
-                    </div>
-                    <div class="message-content">${msg.content}</div>
-                    ${msg.sources ? `
-                        <div class="message-sources">
-                            <strong>Kaynaklar:</strong>
-                            ${msg.sources.map(src => `
-                                <div class="source-tag">📄 ${src.name} (Sayfa ${src.page})</div>
-                            `).join('')}
+            docList.innerHTML = documents.map(doc => `
+                <div class="document-item" style="padding: 10px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                        <div>${doc.processed ? '✅' : '⏳'}</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 500;">${doc.filename}</div>
+                            <div style="font-size: 12px; color: #999;">${doc.processed ? 'İşlendi' : 'İşleniyor...'}</div>
                         </div>
-                    ` : ''}
-                    <div class="message-time">${new Date(msg.timestamp).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</div>
+                    </div>
+                    <button onclick="deleteDocument(${doc.id})" style="background: none; border: none; cursor: pointer; font-size: 18px;">🗑️</button>
                 </div>
-            `;
+            `).join('');
         }
-    }).join('');
-    
-    // Scroll to bottom
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    } catch (error) {
+        console.error('❌ Error loading documents:', error);
+    }
 }
 
-// Send message
-const chatForm = document.getElementById('chatForm');
-const chatInput = document.getElementById('chatInput');
+// Upload document
+const fileInput = document.getElementById('fileInputSidebar');
+if (fileInput) {
+    fileInput.addEventListener('change', async (e) => {
+        const files = e.target.files;
+        
+        for (let file of files) {
+            try {
+                console.log('📤 Uploading:', file.name);
+                const response = await API.uploadFile(API_CONFIG.DOCUMENTS.UPLOAD(roomId), file);
+                console.log('✅ Uploaded:', file.name, 'Document ID:', response.id);
+                
+                // Listeyi hemen güncelle
+                loadDocuments();
+                loadRoomInfo();
+                
+                // Polling başlat - işlenme durumunu kontrol et
+                startDocumentProcessingPoll(response.id);
+                
+            } catch (error) {
+                console.error('❌ Upload error:', error);
+                alert(`${file.name} yüklenirken hata: ${error.message}`);
+            }
+        }
+        
+        e.target.value = '';
+    });
+}
 
-chatForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    sendMessage();
-});
+// Document processing polling - her 3 saniyede bir kontrol et
+let processingPolls = new Map(); // docId -> intervalId
 
-// Send message function
-function sendMessage() {
-    const message = chatInput.value.trim();
-    if (!message) return;
-    
-    if (!currentRoom.documents || currentRoom.documents.length === 0) {
-        alert('Önce doküman yüklemelisiniz!');
-        return;
+function startDocumentProcessingPoll(docId) {
+    // Eğer zaten polling yapılıyorsa, durdur
+    if (processingPolls.has(docId)) {
+        clearInterval(processingPolls.get(docId));
     }
     
-    // Add user message
-    currentRoom.messages = currentRoom.messages || [];
-    currentRoom.messages.push({
-        type: 'user',
-        content: message,
-        timestamp: new Date().toISOString()
-    });
+    console.log(`🔄 Starting polling for document ${docId}`);
     
-    // Clear input
-    chatInput.value = '';
-    chatInput.style.height = 'auto';
+    // Her 3 saniyede bir kontrol et
+    const intervalId = setInterval(async () => {
+        try {
+            const documents = await API.get(API_CONFIG.DOCUMENTS.LIST(roomId));
+            const doc = documents.find(d => d.id === docId);
+            
+            if (doc && doc.processed) {
+                console.log(`✅ Document ${docId} processed!`);
+                // İşlendi, polling'i durdur
+                clearInterval(intervalId);
+                processingPolls.delete(docId);
+                
+                // Listeyi güncelle
+                loadDocuments();
+                loadRoomInfo();
+                
+                // Başarı bildirimi (opsiyonel)
+                showNotification(`${doc.filename} başarıyla işlendi! ✅`);
+            }
+        } catch (error) {
+            console.error('Polling error:', error);
+            // Hata olursa polling'i durdur
+            clearInterval(intervalId);
+            processingPolls.delete(docId);
+        }
+    }, 3000); // 3 saniyede bir
     
-    // Update UI
-    loadMessages();
+    processingPolls.set(docId, intervalId);
     
-    // Simulate AI response
+    // 2 dakika sonra otomatik olarak durdur (timeout)
     setTimeout(() => {
-        currentRoom.messages.push({
-            type: 'ai',
-            content: 'Bu örnek bir AI yanıtıdır. Backend entegrasyonu yapıldığında gerçek cevaplar gelecek.',
-            sources: [
-                { name: currentRoom.documents[0].name, page: 5 }
-            ],
-            timestamp: new Date().toISOString()
-        });
-        
-        saveRoom();
-        loadMessages();
-    }, 1500);
-    
-    saveRoom();
-}
-
-// Handle Enter key press
-chatInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault(); // Prevent new line
-        sendMessage();
-    }
-    // Shift+Enter will naturally create a new line
-});
-
-// Auto-resize textarea
-chatInput.addEventListener('input', function() {
-    this.style.height = 'auto';
-    this.style.height = (this.scrollHeight) + 'px';
-});
-
-// ===== DRAG & DROP =====
-const dragDropArea = document.getElementById('dragDropArea');
-const fileInputSidebar = document.getElementById('fileInputSidebar');
-
-['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-    dragDropArea.addEventListener(eventName, preventDefaults, false);
-});
-
-function preventDefaults(e) {
-    e.preventDefault();
-    e.stopPropagation();
-}
-
-['dragenter', 'dragover'].forEach(eventName => {
-    dragDropArea.addEventListener(eventName, () => {
-        dragDropArea.classList.add('drag-active');
-    });
-});
-
-['dragleave', 'drop'].forEach(eventName => {
-    dragDropArea.addEventListener(eventName, () => {
-        dragDropArea.classList.remove('drag-active');
-    });
-});
-
-dragDropArea.addEventListener('drop', (e) => {
-    const files = e.dataTransfer.files;
-    handleFiles(files);
-});
-
-fileInputSidebar.addEventListener('change', (e) => {
-    handleFiles(e.target.files);
-});
-
-function handleFiles(files) {
-    const fileArray = Array.from(files);
-    const validFiles = fileArray.filter(file => {
-        const ext = file.name.split('.').pop().toLowerCase();
-        return ['pdf', 'doc', 'docx', 'txt'].includes(ext);
-    });
-    
-    if (validFiles.length === 0) {
-        alert('Lütfen geçerli dosya formatı seçin (PDF, DOC, DOCX, TXT)');
-        return;
-    }
-    
-    validFiles.forEach(file => {
-        const newDoc = {
-            id: Date.now().toString() + Math.random(),
-            name: file.name,
-            size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-            uploadedAt: new Date().toISOString()
-        };
-        
-        currentRoom.documents = currentRoom.documents || [];
-        currentRoom.documents.push(newDoc);
-    });
-    
-    saveRoom();
-    loadDocuments();
-    fileInputSidebar.value = '';
-    showNotification(`${validFiles.length} doküman yüklendi!`);
-}
-
-document.getElementById('uploadDocBtn').addEventListener('click', () => {
-    fileInputSidebar.click();
-});
-
-function deleteDocument(docId) {
-    if (!confirm('Bu dokümanı silmek istediğinize emin misiniz?')) return;
-    
-    currentRoom.documents = currentRoom.documents.filter(doc => doc.id !== docId);
-    saveRoom();
-    loadDocuments();
-    showNotification('Doküman silindi');
-}
-
-// ===== ROOM SETTINGS =====
-const roomSettingsModal = document.getElementById('roomSettingsModal');
-const roomSettingsBtn = document.getElementById('roomSettingsBtn');
-const roomSettingsForm = document.getElementById('roomSettingsForm');
-
-roomSettingsBtn.addEventListener('click', () => {
-    document.getElementById('editRoomName').value = currentRoom.name;
-    document.getElementById('editRoomDescription').value = currentRoom.description || '';
-    selectedEmojiSettings = currentRoom.emoji;
-    document.getElementById('selectedEmojiDisplaySettings').textContent = currentRoom.emoji;
-    document.getElementById('editRoomEmoji').value = currentRoom.emoji;
-    
-    roomSettingsModal.classList.remove('hidden');
-});
-
-function closeRoomSettingsModal() {
-    roomSettingsModal.classList.add('hidden');
-    document.getElementById('emojiPickerContainerSettings').classList.add('hidden');
-}
-
-roomSettingsForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    
-    currentRoom.name = document.getElementById('editRoomName').value;
-    currentRoom.description = document.getElementById('editRoomDescription').value;
-    currentRoom.emoji = selectedEmojiSettings;
-    
-    saveRoom();
-    loadRoom();
-    closeRoomSettingsModal();
-    showNotification('Oda ayarları güncellendi!');
-});
-
-// Toggle emoji picker for settings
-function toggleEmojiPickerSettings() {
-    const picker = document.getElementById('emojiPickerContainerSettings');
-    picker.classList.toggle('hidden');
-    
-    if (!picker.classList.contains('hidden')) {
-        loadEmojiGridSettings('all');
-        setupEmojiSearchSettings();
-        setupEmojiTabsSettings();
-    }
-}
-
-function setupEmojiTabsSettings() {
-    const tabs = document.querySelectorAll('.emoji-tab-settings');
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            const category = tab.getAttribute('data-category');
-            loadEmojiGridSettings(category);
-        });
-    });
-}
-
-function setupEmojiSearchSettings() {
-    const searchInput = document.getElementById('emojiSearchSettings');
-    searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase();
-        if (query === '') {
-            loadEmojiGridSettings(currentCategorySettings);
+        if (processingPolls.has(docId)) {
+            console.log(`⏱️ Polling timeout for document ${docId}`);
+            clearInterval(processingPolls.get(docId));
+            processingPolls.delete(docId);
         }
-    });
+    }, 120000); // 2 dakika
 }
 
-function loadEmojiGridSettings(category) {
-    currentCategorySettings = category;
-    const emojis = category === 'all' ? allEmojis : emojiCollections[category] || allEmojis;
-    renderEmojisSettings(emojis);
-}
-
-function renderEmojisSettings(emojis) {
-    const grid = document.getElementById('emojiGridSettings');
-    grid.innerHTML = emojis.map(emoji => `
-        <button type="button" class="emoji-item ${emoji === selectedEmojiSettings ? 'selected' : ''}" data-emoji="${emoji}">
-            ${emoji}
-        </button>
-    `).join('');
-    
-    grid.querySelectorAll('.emoji-item').forEach(btn => {
-        btn.addEventListener('click', () => {
-            selectedEmojiSettings = btn.getAttribute('data-emoji');
-            document.getElementById('selectedEmojiDisplaySettings').textContent = selectedEmojiSettings;
-            document.getElementById('editRoomEmoji').value = selectedEmojiSettings;
-            
-            grid.querySelectorAll('.emoji-item').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            
-            setTimeout(() => {
-                document.getElementById('emojiPickerContainerSettings').classList.add('hidden');
-            }, 200);
-        });
-    });
-}
-
-function saveRoom() {
-    const rooms = JSON.parse(localStorage.getItem('chatRooms') || '[]');
-    const index = rooms.findIndex(room => room.id === roomId);
-    
-    if (index !== -1) {
-        currentRoom.updatedAt = new Date().toISOString();
-        rooms[index] = currentRoom;
-        localStorage.setItem('chatRooms', JSON.stringify(rooms));
-        
-        document.getElementById('docCount').textContent = currentRoom.documents?.length || 0;
-        document.getElementById('chatCount').textContent = currentRoom.messages?.length || 0;
-    }
-}
-
-document.getElementById('deleteRoomBtn').addEventListener('click', () => {
-    if (!confirm('Bu odayı ve tüm içeriğini silmek istediğinize emin misiniz?')) return;
-    if (!confirm('Bu işlem geri alınamaz! Emin misiniz?')) return;
-    
-    const rooms = JSON.parse(localStorage.getItem('chatRooms') || '[]');
-    const filteredRooms = rooms.filter(room => room.id !== roomId);
-    localStorage.setItem('chatRooms', JSON.stringify(filteredRooms));
-    
-    window.location.href = 'dashboard.html';
-});
-
-document.getElementById('logoutBtn').addEventListener('click', () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    window.location.href = 'login.html';
-});
-
+// Bildirim göster (opsiyonel)
 function showNotification(message) {
-    const notif = document.createElement('div');
-    notif.className = 'notification-toast';
-    notif.textContent = message;
-    document.body.appendChild(notif);
+    // Basit bir toast notification
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        z-index: 10000;
+        animation: slideIn 0.3s ease-out;
+    `;
+    notification.textContent = message;
     
-    setTimeout(() => notif.classList.add('show'), 100);
+    document.body.appendChild(notification);
+    
+    // 3 saniye sonra kaldır
     setTimeout(() => {
-        notif.classList.remove('show');
-        setTimeout(() => notif.remove(), 300);
+        notification.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => notification.remove(), 300);
     }, 3000);
 }
 
-loadRoom();
+// CSS animasyonları (head'e ekle)
+if (!document.getElementById('notification-styles')) {
+    const style = document.createElement('style');
+    style.id = 'notification-styles';
+    style.textContent = `
+        @keyframes slideIn {
+            from { transform: translateY(100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateY(0); opacity: 1; }
+            to { transform: translateY(100px); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// Sayfa kapatılırken tüm polling'leri temizle
+window.addEventListener('beforeunload', () => {
+    processingPolls.forEach((intervalId) => clearInterval(intervalId));
+    processingPolls.clear();
+});
+
+// Upload button
+const uploadBtn = document.getElementById('uploadDocBtn');
+if (uploadBtn) {
+    uploadBtn.addEventListener('click', () => {
+        fileInput.click();
+    });
+}
+
+// Delete document
+async function deleteDocument(docId) {
+    if (!confirm('Bu dökümanı silmek istediğinizden emin misiniz?')) return;
+    
+    try {
+        console.log('🗑️ Deleting document:', docId);
+        await API.delete(API_CONFIG.DOCUMENTS.DELETE(docId));
+        console.log('✅ Document deleted');
+        alert('Döküman başarıyla silindi!');
+        loadDocuments();
+        loadRoomInfo();
+    } catch (error) {
+        console.error('❌ Error deleting document:', error);
+        // Daha detaylı hata mesajı göster
+        if (error.message.includes('pattern')) {
+            alert('Döküman silindi ancak vektör temizliğinde sorun oluştu. Sayfa yenilenecek.');
+        } else {
+            alert('Döküman silinirken hata: ' + error.message);
+        }
+        // Hata olsa bile listeyi yenile
+        loadDocuments();
+        loadRoomInfo();
+    }
+}
+
+// Delete room
+const deleteRoomBtn = document.getElementById('deleteRoomBtn');
+if (deleteRoomBtn) {
+    deleteRoomBtn.addEventListener('click', async () => {
+        if (!confirm('Bu odayı silmek istediğinizden emin misiniz? Tüm dokümanlar ve mesajlar silinecek!')) return;
+        
+        try {
+            console.log('🗑️ Deleting room:', roomId);
+            await API.delete(API_CONFIG.ROOMS.DELETE(roomId));
+            console.log('✅ Room deleted');
+            alert('Oda silindi!');
+            window.location.href = 'dashboard.html';
+        } catch (error) {
+            console.error('❌ Error deleting room:', error);
+            alert('Oda silinirken hata: ' + error.message);
+        }
+    });
+}
+
+// Load chat history from database
+async function loadChatHistory() {
+    try {
+        console.log('📜 Loading chat history from database...');
+        const history = await API.get(API_CONFIG.CHAT.HISTORY(roomId));
+        console.log('✅ Chat history loaded:', history.length, 'messages');
+        
+        history.forEach(msg => {
+            addMessage(msg.message_type, msg.content, false, msg.sources || []);
+        });
+    } catch (error) {
+        console.error('❌ Error loading chat history:', error);
+    }
+}
+
+// Send chat message
+const chatForm = document.getElementById('chatForm');
+if (chatForm) {
+    chatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const input = document.getElementById('chatInput');
+        const question = input.value.trim();
+        
+        if (!question) return;
+        
+        console.log('💬 Sending message:', question);
+        
+        // Add user message to UI (geçici - backend'den tekrar gelecek)
+        addMessage('user', question);
+        input.value = '';
+        
+        // Show loading
+        const loadingId = addMessage('ai', 'Düşünüyorum...', true);
+        
+        try {
+            const response = await API.post(API_CONFIG.CHAT.SEND(roomId), { question });
+            console.log('✅ AI response:', response);
+            
+            // Remove loading, add AI response
+            document.getElementById(loadingId).remove();
+            addMessage('ai', response.answer, false, response.sources);
+            
+        } catch (error) {
+            console.error('❌ Chat error:', error);
+            document.getElementById(loadingId).remove();
+            const errorMsg = 'Üzgünüm, bir hata oluştu: ' + error.message;
+            addMessage('ai', errorMsg);
+        }
+    });
+}
+
+// Add message to chat - DÜZELTİLDİ
+let messageIdCounter = 0;
+function addMessage(type, content, isLoading = false, sources = []) {
+    const messagesDiv = document.getElementById('chatMessages');
+    const messageId = `msg-${messageIdCounter++}`;
+    
+    // Renk değerleri
+    const userBg = '#667eea';
+    const userColor = '#ffffff';
+    const aiBg = '#f5f5f5';
+    const aiColor = '#1a202c';  // Daha koyu renk
+    
+    const messageHtml = `
+        <div id="${messageId}" class="chat-message ${type}-message" style="margin-bottom: 15px; padding: 15px; border-radius: 10px; ${type === 'user' ? `background: ${userBg}; color: ${userColor};` : `background: ${aiBg}; color: ${aiColor} !important;`} margin-left: ${type === 'user' ? 'auto' : '0'}; max-width: 70%;">
+            <div style="font-weight: 500; margin-bottom: 5px; color: ${type === 'user' ? userColor : '#4a5568'};">${type === 'user' ? 'Siz' : 'AI Asistan'}</div>
+            <div style="line-height: 1.5; color: ${type === 'user' ? userColor : aiColor} !important;">${content}</div>
+            ${sources && sources.length > 0 ? `
+                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.1); font-size: 12px; color: #718096;">
+                    📚 Kaynaklar: ${sources.map(s => s.filename).join(', ')}
+                </div>
+            ` : ''}
+        </div>
+    `;
+    
+    messagesDiv.insertAdjacentHTML('beforeend', messageHtml);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    
+    return messageId;
+}
+
+// Logout
+const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+        Auth.logout();
+    });
+}
+
+// Load on page load
+console.log('🎯 Initializing room...');
+loadUserInfo();
+loadRoomInfo();
+loadDocuments();
+loadChatHistory();  // ← Sohbet geçmişini yükle
+
+console.log('✅ Room initialized');
