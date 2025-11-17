@@ -2,7 +2,6 @@
 class API {
     static async request(endpoint, options = {}) {
         const url = getApiUrl(endpoint);
-        
         const defaultHeaders = {
             'Content-Type': 'application/json'
         };
@@ -31,7 +30,12 @@ class API {
                 throw new Error('Oturum süreniz doldu. Lütfen tekrar giriş yapın.');
             }
             
-            // Parse JSON
+            // Handle 204 No Content (successful delete, no body)
+            if (response.status === 204) {
+                return { success: true };
+            }
+            
+            // Parse JSON for other responses
             const data = await response.json();
             
             if (!response.ok) {
@@ -40,6 +44,17 @@ class API {
             
             return data;
         } catch (error) {
+            // If error is already our custom error, throw it
+            if (error.message === 'Oturum süreniz doldu. Lütfen tekrar giriş yapın.' || 
+                error.message.includes('hata oluştu')) {
+                throw error;
+            }
+            
+            // For JSON parse errors on 204 responses, return success
+            if (error instanceof SyntaxError && error.message.includes('JSON')) {
+                return { success: true };
+            }
+            
             console.error('API Error:', error);
             throw error;
         }

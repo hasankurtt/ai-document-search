@@ -6,10 +6,10 @@
     <title>Giriş Yap - AI Document Search</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
     <div class="auth-page">
         <div class="auth-grid">
-            <!-- Left Side - Branding -->
             <div class="branding-side">
                 <div class="brand-header">
                     <div class="brand-icon">✨</div>
@@ -52,22 +52,18 @@
                 </div>
             </div>
 
-            <!-- Right Side - Auth Form -->
             <div class="auth-side">
                 <div class="auth-card">
-                    <!-- Mobile Brand -->
                     <div class="mobile-brand">
                         <div class="mobile-brand-icon">✨</div>
                         <h1>AI Search</h1>
                     </div>
 
-                    <!-- Tabs -->
                     <div class="auth-tabs">
                         <button class="tab-btn active" id="loginTab">Giriş Yap</button>
                         <button class="tab-btn" id="registerTab">Kayıt Ol</button>
                     </div>
 
-                    <!-- Login Form -->
                     <form id="loginForm" class="auth-form">
                         <div class="form-group">
                             <label for="loginEmail">E-posta</label>
@@ -110,7 +106,6 @@
                         </button>
                     </form>
 
-                    <!-- Register Form (Hidden by default) -->
                     <form id="registerForm" class="auth-form hidden">
                         <div class="form-group">
                             <label for="registerName">Ad Soyad</label>
@@ -196,14 +191,12 @@
                         </button>
                     </form>
 
-                    <!-- Divider -->
                     <div class="divider">
                         <div class="divider-line"></div>
                         <span class="divider-text">veya</span>
                         <div class="divider-line"></div>
                     </div>
 
-                    <!-- Social Login -->
                     <div class="social-buttons">
                         <button class="btn-social">
                             <svg viewBox="0 0 24 24">
@@ -223,14 +216,12 @@
                         </button>
                     </div>
 
-                    <!-- Switch Text -->
                     <div class="switch-text">
                         <span id="switchText">Hesabınız yok mu? </span>
                         <a href="#" class="switch-link" id="switchLink">Kayıt Ol</a>
                     </div>
                 </div>
 
-                <!-- Footer Links -->
                 <div class="footer-links">
                     <a href="kvkk.html">Gizlilik</a>
                     <span>•</span>
@@ -242,8 +233,102 @@
         </div>
     </div>
 
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
     <script>
+        console.log('🚀 Login page loaded');
+        
+        // Redirect if already logged in
+        if (TokenManager.isValid()) {
+            console.log('✅ Already logged in, redirecting...');
+            window.location.href = 'dashboard.html';
+        }
+        
+        // Login Form Submit
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            console.log('📝 Login form submitted');
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            console.log('📧 Email:', email);
+            
+            const submitBtn = e.target.querySelector('.btn-submit');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span>⏳</span><span>Giriş yapılıyor...</span>';
+            submitBtn.disabled = true;
+            
+            try {
+                console.log('🔑 Calling Auth.login...');
+                const result = await Auth.login(email, password);
+                console.log('✅ Login successful!', result);
+                
+                // Eski localStorage'ı temizle
+                localStorage.removeItem('user');
+                localStorage.removeItem('token');
+                localStorage.removeItem('chatRooms');
+                
+                console.log('🔄 Redirecting to dashboard...');
+                window.location.href = 'dashboard.html';
+            } catch (error) {
+                console.error('❌ Login error:', error);
+                alert('Giriş başarısız: ' + error.message);
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+        
+        // Register Form Submit
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            console.log('📝 Register form submitted');
+            
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('registerConfirmPassword').value;
+            
+            if (password !== confirmPassword) {
+                alert('Şifreler eşleşmiyor!');
+                return;
+            }
+            
+            if (!document.getElementById('termsCheck').checked || !document.getElementById('kvkkCheck').checked) {
+                alert('Lütfen kullanım şartlarını ve KVKK metnini kabul edin');
+                return;
+            }
+            
+            const submitBtn = e.target.querySelector('.btn-submit');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span>⏳</span><span>Kayıt olunuyor...</span>';
+            submitBtn.disabled = true;
+            
+            try {
+                console.log('🆕 Calling Auth.register...');
+                await Auth.register(email, name, password);
+                console.log('✅ Register successful!');
+                
+                alert('Kayıt başarılı! Giriş yapılıyor...');
+                
+                console.log('🔑 Auto-login...');
+                await Auth.login(email, password);
+                
+                // Eski localStorage'ı temizle
+                localStorage.removeItem('user');
+                localStorage.removeItem('token');
+                localStorage.removeItem('chatRooms');
+                
+                window.location.href = 'dashboard.html';
+            } catch (error) {
+                console.error('❌ Register error:', error);
+                alert('Kayıt başarısız: ' + error.message);
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+        
         // Tab switching
         const loginTab = document.getElementById('loginTab');
         const registerTab = document.getElementById('registerTab');
@@ -286,45 +371,53 @@
         const loginPassword = document.getElementById('loginPassword');
         const loginEyeIcon = document.getElementById('loginEyeIcon');
 
-        loginPasswordToggle.addEventListener('click', () => {
-            if (loginPassword.type === 'password') {
-                loginPassword.type = 'text';
-                loginEyeIcon.textContent = '🙈';
-            } else {
-                loginPassword.type = 'password';
-                loginEyeIcon.textContent = '👁️';
-            }
-        });
+        if (loginPasswordToggle) {
+            loginPasswordToggle.addEventListener('click', () => {
+                if (loginPassword.type === 'password') {
+                    loginPassword.type = 'text';
+                    loginEyeIcon.textContent = '🙈';
+                } else {
+                    loginPassword.type = 'password';
+                    loginEyeIcon.textContent = '👁️';
+                }
+            });
+        }
 
         // Password toggle - Register Password
         const registerPasswordToggle = document.getElementById('registerPasswordToggle');
         const registerPassword = document.getElementById('registerPassword');
         const registerEyeIcon = document.getElementById('registerEyeIcon');
 
-        registerPasswordToggle.addEventListener('click', () => {
-            if (registerPassword.type === 'password') {
-                registerPassword.type = 'text';
-                registerEyeIcon.textContent = '🙈';
-            } else {
-                registerPassword.type = 'password';
-                registerEyeIcon.textContent = '👁️';
-            }
-        });
+        if (registerPasswordToggle) {
+            registerPasswordToggle.addEventListener('click', () => {
+                if (registerPassword.type === 'password') {
+                    registerPassword.type = 'text';
+                    registerEyeIcon.textContent = '🙈';
+                } else {
+                    registerPassword.type = 'password';
+                    registerEyeIcon.textContent = '👁️';
+                }
+            });
+        }
 
         // Password toggle - Register Confirm Password
         const registerConfirmPasswordToggle = document.getElementById('registerConfirmPasswordToggle');
         const registerConfirmPassword = document.getElementById('registerConfirmPassword');
         const registerConfirmEyeIcon = document.getElementById('registerConfirmEyeIcon');
 
-        registerConfirmPasswordToggle.addEventListener('click', () => {
-            if (registerConfirmPassword.type === 'password') {
-                registerConfirmPassword.type = 'text';
-                registerConfirmEyeIcon.textContent = '🙈';
-            } else {
-                registerConfirmPassword.type = 'password';
-                registerConfirmEyeIcon.textContent = '👁️';
-            }
-        });
+        if (registerConfirmPasswordToggle) {
+            registerConfirmPasswordToggle.addEventListener('click', () => {
+                if (registerConfirmPassword.type === 'password') {
+                    registerConfirmPassword.type = 'text';
+                    registerConfirmEyeIcon.textContent = '🙈';
+                } else {
+                    registerConfirmPassword.type = 'password';
+                    registerConfirmEyeIcon.textContent = '👁️';
+                }
+            });
+        }
+        
+        console.log('✅ All event listeners registered');
     </script>
 </body>
 </html>

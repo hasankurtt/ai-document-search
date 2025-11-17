@@ -1,269 +1,173 @@
-// Premium emoji collections - GENİŞLETİLMİŞ
-const emojiCollections = {
-    education: [
-        '📚', '📖', '📝', '✏️', '📕', '📗', '📘', '📙', '📓', '📔',
-        '🎓', '🎯', '📊', '📈', '📉', '🗂️', '📋', '📌', '📍', '🔖',
-        '🧮', '📐', '📏', '✂️', '🖊️', '🖍️', '🖌️', '🔬', '🔭', '⚗️',
-        '📚', '��', '🎒', '✍️', '📑', '📄', '📃', '🗃️', '🗄️', '��'
-    ],
-    work: [
-        '💼', '👔', '💻', '⌨️', '🖥️', '📱', '☎️', '📞', '📠', '🗃️',
-        '📂', '📁', '📄', '📃', '📑', '🗒️', '📇', '📊', '📈', '📉',
-        '💰', '💵', '💴', '💶', '💷', '💳', '🏢', '🏦', '🏭', '⚖️',
-        '🔨', '🔧', '⚙️', '🛠️', '📋', '📌', '📍', '✅', '📝', '🗓️'
-    ],
-    science: [
-        '🔬', '🔭', '⚗️', '🧪', '🧬', '🦠', '💉', '🩺', '🌡️', '🧲',
-        '⚛️', '🔆', '💡', '🔋', '🔌', '💻', '🖥️', '⚙️', '🛠️', '🔧',
-        '🌍', '🌎', '🌏', '🪐', '🌙', '⭐', '✨', '⚡', '🔥', '💧',
-        '🧫', '🦴', '🧠', '🫀', '🫁', '🌋', '🏔️', '🌊', '☄️', '🌠'
-    ],
-    creative: [
-        '🎨', '🖌️', '🖍️', '✏️', '��', '🎬', '🎪', '🎸', '🎹', '🎺',
-        '🎻', '��', '🎤', '🎧', '📻', '📷', '📸', '📹', '🎥', '📽️',
-        '🎮', '🎯', '🎲', '🎰', '🎳', '♟️', '🧩', '🪀', '🪁', '🎈',
-        '🎉', '🎊', '🎁', '🎀', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️'
-    ],
-    health: [
-        '🏥', '⚕️', '🩺', '💊', '💉', '��', '🩼', '🦷', '🧬', '🔬',
-        '❤️', '🫀', '��', '🧠', '🦴', '👁️', '🦻', '👃', '👄', '🫂',
-        '🏃', '🚴', '🏋️', '🤸', '🧘', '🥗', '🥤', '��', '🥦', '🥕',
-        '💪', '🧘‍♀️', '🧘‍♂️', '��', '🏃‍♀️', '🏃‍♂️', '🤾', '⛹️', '🏊', '🚵'
-    ],
-    other: [
-        '⭐', '✨', '💫', '🌟', '⚡', '🔥', '💥', '💢', '💬', '💭',
-        '🎯', '🎪', '🎭', '🎨', '🎬', '🎮', '🎲', '🎰', '🎳', '🎯',
-        '🌈', '☀️', '🌙', '⭐', '💎', '🔮', '🎁', '🎀', '🎊', '🎉',
-        '🚀', '🛸', '🌌', '🔱', '♠️', '♥️', '♦️', '♣️', '🃏', '🎴'
-    ]
-};
+console.log('🚀 Dashboard.js loaded');
 
-// All emojis flattened
-const allEmojis = Object.values(emojiCollections).flat();
+// Check auth
+console.log('🔐 Checking auth...');
+console.log('Token:', TokenManager.get());
 
-let selectedEmoji = '📚';
-let currentCategory = 'all';
-
-// Check authentication
-function checkAuth() {
-    const user = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-    
-    if (!user || !token) {
-        window.location.href = 'login.html';
-        return false;
-    }
-    
-    const userData = JSON.parse(user);
-    document.getElementById('userName').textContent = userData.name;
-    
-    return true;
-}
-
-checkAuth();
-
-// Logout
-document.getElementById('logoutBtn').addEventListener('click', () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
+if (!TokenManager.isValid()) {
+    console.log('❌ No valid token, redirecting to login...');
     window.location.href = 'login.html';
-});
-
-// Load rooms from localStorage
-function loadRooms() {
-    const rooms = JSON.parse(localStorage.getItem('chatRooms') || '[]');
-    const roomsGrid = document.getElementById('roomsGrid');
-    const emptyState = document.getElementById('emptyState');
-    
-    if (rooms.length === 0) {
-        roomsGrid.innerHTML = '';
-        emptyState.classList.remove('hidden');
-        return;
-    }
-    
-    emptyState.classList.add('hidden');
-    
-    roomsGrid.innerHTML = rooms.map(room => `
-        <div class="room-card" onclick="openRoom('${room.id}')">
-            <div class="room-card-header">
-                <div class="room-card-emoji">${room.emoji}</div>
-                <button class="room-menu-btn" onclick="event.stopPropagation(); showRoomMenu('${room.id}')">
-                    ⋮
-                </button>
-            </div>
-            <h3 class="room-card-title">${room.name}</h3>
-            <p class="room-card-description">${room.description || 'Açıklama yok'}</p>
-            <div class="room-card-stats">
-                <div class="room-card-stat">
-                    <span>📄</span>
-                    <span>${room.documents?.length || 0} doküman</span>
-                </div>
-                <div class="room-card-stat">
-                    <span>💬</span>
-                    <span>${room.messages?.length || 0} mesaj</span>
-                </div>
-            </div>
-            <div class="room-card-date">
-                Son güncelleme: ${new Date(room.updatedAt).toLocaleDateString('tr-TR')}
-            </div>
-        </div>
-    `).join('');
+    throw new Error('No auth'); // Stop execution
 }
 
-// Open room
-function openRoom(roomId) {
-    window.location.href = `room.html?id=${roomId}`;
-}
+console.log('✅ Token valid, loading dashboard...');
 
-// Create room modal
-const createRoomModal = document.getElementById('createRoomModal');
-const createRoomBtn = document.getElementById('createRoomBtn');
-const createRoomForm = document.getElementById('createRoomForm');
-
-createRoomBtn.addEventListener('click', () => {
-    createRoomModal.classList.remove('hidden');
-    selectedEmoji = '📚';
-    document.getElementById('selectedEmojiDisplay').textContent = selectedEmoji;
-    document.getElementById('roomEmoji').value = selectedEmoji;
-});
-
-function closeCreateRoomModal() {
-    createRoomModal.classList.add('hidden');
-    createRoomForm.reset();
-    document.getElementById('emojiPickerContainer').classList.add('hidden');
-    selectedEmoji = '📚';
-}
-
-// Toggle emoji picker
-function toggleEmojiPicker() {
-    const picker = document.getElementById('emojiPickerContainer');
-    picker.classList.toggle('hidden');
-    
-    if (!picker.classList.contains('hidden')) {
-        loadEmojiGrid('all');
-        setupEmojiSearch();
-        setupEmojiTabs();
+// Load user info from backend
+async function loadUserInfo() {
+    try {
+        console.log('👤 Loading user info...');
+        const user = await Auth.getCurrentUser();
+        console.log('✅ User loaded:', user);
+        document.getElementById('userName').textContent = user.name;
+    } catch (error) {
+        console.error('❌ Error loading user:', error);
+        alert('Kullanıcı bilgileri yüklenemedi: ' + error.message);
+        Auth.logout();
     }
 }
 
-// Setup emoji tabs
-function setupEmojiTabs() {
-    const tabs = document.querySelectorAll('.emoji-tab');
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            const category = tab.getAttribute('data-category');
-            loadEmojiGrid(category);
-        });
-    });
-}
-
-// Setup emoji search
-function setupEmojiSearch() {
-    const searchInput = document.getElementById('emojiSearch');
-    searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase();
-        if (query === '') {
-            loadEmojiGrid(currentCategory);
+// Load rooms from backend
+async function loadRooms() {
+    try {
+        console.log('🏠 Loading rooms from backend...');
+        const rooms = await API.get(API_CONFIG.ROOMS.LIST);
+        console.log('✅ Rooms loaded:', rooms);
+        
+        const roomsGrid = document.getElementById('roomsGrid');
+        const emptyState = document.getElementById('emptyState');
+        
+        if (rooms.length === 0) {
+            roomsGrid.innerHTML = '';
+            emptyState.classList.remove('hidden');
         } else {
-            filterEmojis(query);
+            emptyState.classList.add('hidden');
+            roomsGrid.innerHTML = rooms.map(room => `
+                <div class="room-card" onclick="openRoom(${room.id})">
+                    <div class="room-card-header">
+                        <div class="room-card-emoji">${room.emoji}</div>
+                        <button class="room-menu-btn" onclick="event.stopPropagation(); deleteRoom(${room.id})">
+                            🗑️
+                        </button>
+                    </div>
+                    <h3 class="room-card-title">${room.name}</h3>
+                    <p class="room-card-description">${room.description || 'Açıklama yok'}</p>
+                    <div class="room-card-stats">
+                        <div class="room-card-stat">
+                            <span>📄</span>
+                            <span>${room.document_count || 0} doküman</span>
+                        </div>
+                        <div class="room-card-stat">
+                            <span>💬</span>
+                            <span>${room.message_count || 0} mesaj</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch (error) {
+        console.error('❌ Error loading rooms:', error);
+        alert('Odalar yüklenirken hata: ' + error.message);
+    }
+}
+
+// Create room
+const createRoomForm = document.getElementById('createRoomForm');
+if (createRoomForm) {
+    createRoomForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const name = document.getElementById('roomName').value;
+        const description = document.getElementById('roomDescription').value;
+        const emoji = document.getElementById('roomEmoji').value;
+        
+        console.log('📝 Creating room:', { name, description, emoji });
+        
+        try {
+            const room = await API.post(API_CONFIG.ROOMS.CREATE, { name, description, emoji });
+            console.log('✅ Room created:', room);
+            
+            closeCreateRoomModal();
+            createRoomForm.reset();
+            document.getElementById('roomEmoji').value = '📚';
+            const emojiDisplay = document.getElementById('selectedEmojiDisplay');
+            if (emojiDisplay) emojiDisplay.textContent = '📚';
+            
+            loadRooms();
+        } catch (error) {
+            console.error('❌ Error creating room:', error);
+            alert('Oda oluşturulurken hata: ' + error.message);
         }
     });
 }
 
-// Filter emojis by search
-function filterEmojis(query) {
-    const grid = document.getElementById('emojiGrid');
-    const filtered = allEmojis.filter(emoji => {
-        // Simple filter - in real app you'd have emoji names/tags
-        return true; // For now show all, you can add emoji names mapping
-    });
+// Delete room
+async function deleteRoom(roomId) {
+    if (!confirm('Bu odayı silmek istediğinizden emin misiniz?')) return;
     
-    if (filtered.length === 0) {
-        grid.innerHTML = '<p style="text-align: center; color: #64748b; padding: 2rem;">Emoji bulunamadı</p>';
-    } else {
-        renderEmojis(filtered);
+    try {
+        console.log('🗑️ Deleting room:', roomId);
+        await API.delete(API_CONFIG.ROOMS.DELETE(roomId));
+        console.log('✅ Room deleted');
+        loadRooms();
+    } catch (error) {
+        console.error('❌ Error deleting room:', error);
+        alert('Oda silinirken hata: ' + error.message);
     }
 }
 
-// Load emoji grid
-function loadEmojiGrid(category) {
-    currentCategory = category;
-    const emojis = category === 'all' ? allEmojis : emojiCollections[category] || allEmojis;
-    renderEmojis(emojis);
+// Open room
+function openRoom(roomId) {
+    console.log('🚪 Opening room:', roomId);
+    window.location.href = `room.html?id=${roomId}`;
 }
 
-// Render emojis
-function renderEmojis(emojis) {
-    const grid = document.getElementById('emojiGrid');
-    grid.innerHTML = emojis.map(emoji => `
-        <button type="button" class="emoji-item ${emoji === selectedEmoji ? 'selected' : ''}" data-emoji="${emoji}">
-            ${emoji}
-        </button>
+// Modal functions
+function openCreateRoomModal() {
+    document.getElementById('createRoomModal').classList.remove('hidden');
+}
+
+function closeCreateRoomModal() {
+    document.getElementById('createRoomModal').classList.add('hidden');
+}
+
+// Logout
+const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+        console.log('🚪 Logging out...');
+        Auth.logout();
+    });
+}
+
+const createRoomBtn = document.getElementById('createRoomBtn');
+if (createRoomBtn) {
+    createRoomBtn.addEventListener('click', openCreateRoomModal);
+}
+
+// Emoji picker
+const emojis = ['📚', '💼', '��', '🎨', '🏥', '💡', '🎓', '🏢', '🎯', '📊', '🗂️', '📝', '🔖', '📌', '⭐', '✨', '🚀', '💻', '📱', '🌍'];
+const emojiGrid = document.getElementById('emojiGrid');
+if (emojiGrid) {
+    emojiGrid.innerHTML = emojis.map(emoji => `
+        <div class="emoji-item" onclick="selectEmoji('${emoji}')">${emoji}</div>
     `).join('');
-    
-    // Add click listeners
-    grid.querySelectorAll('.emoji-item').forEach(btn => {
-        btn.addEventListener('click', () => {
-            selectedEmoji = btn.getAttribute('data-emoji');
-            document.getElementById('selectedEmojiDisplay').textContent = selectedEmoji;
-            document.getElementById('roomEmoji').value = selectedEmoji;
-            
-            // Update selected state
-            grid.querySelectorAll('.emoji-item').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            
-            // Close picker
-            setTimeout(() => {
-                document.getElementById('emojiPickerContainer').classList.add('hidden');
-            }, 200);
-        });
-    });
 }
 
-// Create room form submit
-createRoomForm.addEventListener('submit', (e) => {
-    e.preventDefault();
+function selectEmoji(emoji) {
+    document.getElementById('roomEmoji').value = emoji;
+    const emojiDisplay = document.getElementById('selectedEmojiDisplay');
+    if (emojiDisplay) emojiDisplay.textContent = emoji;
     
-    const name = document.getElementById('roomName').value;
-    const description = document.getElementById('roomDescription').value;
-    const emoji = selectedEmoji;
-    
-    const rooms = JSON.parse(localStorage.getItem('chatRooms') || '[]');
-    
-    const newRoom = {
-        id: Date.now().toString(),
-        name,
-        description,
-        emoji,
-        documents: [],
-        messages: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-    };
-    
-    rooms.push(newRoom);
-    localStorage.setItem('chatRooms', JSON.stringify(rooms));
-    
-    closeCreateRoomModal();
-    loadRooms();
-});
-
-// Room menu
-function showRoomMenu(roomId) {
-    const confirmed = confirm('Bu odayı silmek istiyor musunuz?');
-    if (confirmed) {
-        deleteRoom(roomId);
-    }
+    const picker = document.getElementById('emojiPickerContainer');
+    if (picker) picker.classList.add('hidden');
 }
 
-function deleteRoom(roomId) {
-    const rooms = JSON.parse(localStorage.getItem('chatRooms') || '[]');
-    const filteredRooms = rooms.filter(room => room.id !== roomId);
-    localStorage.setItem('chatRooms', JSON.stringify(filteredRooms));
-    loadRooms();
+function toggleEmojiPicker() {
+    const picker = document.getElementById('emojiPickerContainer');
+    if (picker) picker.classList.toggle('hidden');
 }
 
-// Initial load
+// Load on page load
+console.log('🎯 Initializing dashboard...');
+loadUserInfo();
 loadRooms();
