@@ -26,7 +26,7 @@ class ChatService:
         self, 
         query_embedding: List[float], 
         namespace: str,
-        top_k: int = 5
+        top_k: int = 10  # ← 5'ten 10'a çıkarıldı, daha fazla chunk alır
     ) -> List[Dict[str, Any]]:
         """Pinecone'da ilgili chunk'ları bul"""
         results = self.index.query(
@@ -38,7 +38,8 @@ class ChatService:
         
         chunks = []
         for match in results['matches']:
-            if match['score'] > 0.3:  # Düşük threshold (test için)
+            # Similarity threshold: 0.5'e çıkarıldı (daha alakalı sonuçlar)
+            if match['score'] > 0.5:
                 chunks.append({
                     'text': match['metadata'].get('text', ''),
                     'score': match['score'],
@@ -46,6 +47,7 @@ class ChatService:
                     'filename': match['metadata'].get('filename')
                 })
         
+        logger.info(f"Found {len(chunks)} relevant chunks (threshold: 0.5)")
         return chunks
     
     def generate_answer(
@@ -55,24 +57,35 @@ class ChatService:
     ) -> Dict[str, Any]:
         """OpenAI GPT ile cevap oluştur"""
         
-        # Context'i birleştir
-        context = "\n\n".join([
-            f"[Kaynak: {chunk['filename']}]\n{chunk['text']}" 
-            for chunk in context_chunks
+        # Context'i birleştir - score'a göre sırala (en alakalı önce)
+        sorted_chunks = sorted(context_chunks, key=lambda x: x['score'], reverse=True)
+        
+        context = "\n\n---\n\n".join([
+            f"Kaynak Dosya: {chunk['filename']}\nİçerik: {chunk['text']}" 
+            for chunk in sorted_chunks[:5]  # En alakalı 5 chunk
         ])
         
-        # Prompt oluştur
-        system_prompt = """Sen yardımcı bir AI asistansın. 
-Kullanıcının sorularını verilen dokümanlar bağlamında cevapla.
-Cevaplarını Türkçe ver, net ve anlaşılır ol.
-Eğer dokümanlarda cevap yoksa, bunu söyle."""
+        # İyileştirilmiş prompt
+        system_prompt = """Sen profesyonel bir AI asistansın. Kullanıcıya verilen dokümanlar bağlamında doğru ve detaylı cevaplar veriyorsun.
+
+KURALLAR:
+1. SADECE verilen dokümanlardaki bilgileri kullan
+2. Dokümanlardan DOĞRUDAN alıntı yap ve hangi kaynaktan aldığını belirt
+3. Cevabını Türkçe, net ve anlaşılır bir şekilde ver
+4. Eğer dokümanlarda cevap yoksa, açıkça "Bu bilgi verilen dokümanlarda bulunmuyor" de
+5. Varsayımda bulunma, sadece dokümandaki bilgileri kullan
+6. Tarih, isim, sayı gibi spesifik bilgileri tam olarak dokümandan aktar"""
         
-        user_prompt = f"""Dokümanlar:
+        user_prompt = f"""Aşağıdaki doküman içeriklerine dayanarak soruyu cevapla:
+
+=== DOKÜMANLAR ===
 {context}
 
-Soru: {question}
+=== SORU ===
+{question}
 
-Lütfen yukarıdaki dokümanlara dayanarak soruyu cevapla."""
+=== TALİMATLAR ===
+Yukarıdaki dokümanlara dayanarak soruyu detaylı şekilde cevapla. Cevabını verirken hangi bilgiyi hangi kaynaktan aldığını belirt."""
         
         # OpenAI'ye gönder
         response = self.openai_client.chat.completions.create(
@@ -81,8 +94,8 @@ Lütfen yukarıdaki dokümanlara dayanarak soruyu cevapla."""
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0.7,
-            max_tokens=500
+            temperature=0.3,  # 0.7'den 0.3'e düşürüldü - daha tutarlı cevaplar
+            max_tokens=800  # 500'den 800'e çıkarıldı - daha detaylı cevaplar
         )
         
         answer = response.choices[0].message.content
@@ -95,14 +108,16 @@ Lütfen yukarıdaki dokümanlara dayanarak soruyu cevapla."""
                 {
                     "document_id": chunk['document_id'],
                     "filename": chunk['filename'],
-                    "score": chunk['score']
+                    "score": round(chunk['score'], 3)
                 }
-                for chunk in context_chunks
+                for chunk in sorted_chunks[:5]  # En alakalı 5'ini göster
             ]
         }
     
     def chat(self, question: str, namespace: str) -> Dict[str, Any]:
         """Ana chat fonksiyonu"""
+        
+        logger.info(f"Chat question: {question[:100]}...")
         
         # 1. Soruyu embedding'e çevir
         query_embedding = self.create_query_embedding(question)
@@ -111,8 +126,9 @@ Lütfen yukarıdaki dokümanlara dayanarak soruyu cevapla."""
         relevant_chunks = self.search_relevant_chunks(query_embedding, namespace)
         
         if not relevant_chunks:
+            logger.warning("No relevant chunks found")
             return {
-                "answer": "Üzgünüm, bu soruya cevap verebilecek doküman bulamadım.",
+                "answer": "Üzgünüm, bu soruya cevap verebilecek ilgili bilgi verilen dokümanlarda bulamadım. Lütfen sorunuzu başka şekilde sormayı deneyin veya farklı dokümanlar yükleyin.",
                 "tokens_used": 0,
                 "sources": []
             }
@@ -120,7 +136,7 @@ Lütfen yukarıdaki dokümanlara dayanarak soruyu cevapla."""
         # 3. GPT ile cevap oluştur
         result = self.generate_answer(question, relevant_chunks)
         
-        logger.info(f"Chat: {len(relevant_chunks)} chunks, {result['tokens_used']} tokens")
+        logger.info(f"Chat completed: {len(relevant_chunks)} chunks used, {result['tokens_used']} tokens")
         
         return result
 
