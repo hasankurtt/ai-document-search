@@ -723,7 +723,7 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICE
 **Hasan Kurt**
 - GitHub: [@hasankurtt](https://github.com/hasankurtt)
 - Email: hasankurt051@gmail.com
-- LinkedIn: [your-profile](https://linkedin.com/in/hsnkurt)
+- LinkedIn: [@hsnkurt](https://linkedin.com/in/hsnkurt)
 
 ## 🙏 Teşekkürler
 
