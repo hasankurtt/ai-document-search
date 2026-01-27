@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, BackgroundTasks, Request
 from sqlalchemy.orm import Session
 from typing import List
 import os
@@ -12,12 +12,15 @@ from app.config import settings
 from app.services import process_document_task
 from pinecone import Pinecone
 import logging
+from app.limiter import limiter
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
 @router.post("/upload/{room_id}", response_model=DocumentUploadResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/day")
 async def upload_document(
+    request: Request,
     room_id: int,
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
@@ -105,7 +108,7 @@ async def upload_document(
     }
 
 @router.get("/room/{room_id}", response_model=List[DocumentResponse])
-def get_room_documents(
+async def get_room_documents(
     room_id: int,
     user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
@@ -129,7 +132,7 @@ def get_room_documents(
     return documents
 
 @router.get("/{document_id}", response_model=DocumentResponse)
-def get_document(
+async def get_document(
     document_id: int,
     user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
@@ -151,7 +154,7 @@ def get_document(
     return document
 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_document(
+async def delete_document(
     document_id: int,
     user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)

@@ -1,8 +1,12 @@
 from typing import List, Dict, Any
-from openai import OpenAI
+#from openai import OpenAI
 from pinecone import Pinecone
 from app.config import settings
 import logging
+
+import asyncio
+from functools import partial
+from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
 
@@ -10,35 +14,42 @@ class ChatService:
     """AI Chat servisi"""
     
     def __init__(self):
-        self.openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        self.openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
         self.pinecone_client = Pinecone(api_key=settings.PINECONE_API_KEY)
         self.index = self.pinecone_client.Index(settings.PINECONE_INDEX_NAME)
     
-    def create_query_embedding(self, question: str) -> List[float]:
+    async def create_query_embedding(self, question: str) -> List[float]:
         """Soruyu embedding'e çevir"""
-        response = self.openai_client.embeddings.create(
+        response = await self.openai_client.embeddings.create(
             input=question,
             model=settings.OPENAI_EMBEDDING_MODEL
         )
         return response.data[0].embedding
     
-    def search_relevant_chunks(
+    async def search_relevant_chunks(
         self, 
         query_embedding: List[float], 
         namespace: str,
-        top_k: int = 10  # ← 5'ten 10'a çıkarıldı, daha fazla chunk alır
+        top_k: int = 10
     ) -> List[Dict[str, Any]]:
         """Pinecone'da ilgili chunk'ları bul"""
-        results = self.index.query(
-            namespace=namespace,
-            vector=query_embedding,
-            top_k=top_k,
-            include_metadata=True
+        
+        # Pinecone query'yi executor'da çalıştır
+        loop = asyncio.get_event_loop()
+        results = await loop.run_in_executor(
+            None,
+            partial(
+                self.index.query,
+                namespace=namespace,
+                vector=query_embedding,
+                top_k=top_k,
+                include_metadata=True
+            )
         )
         
+        # Geri kalan işlemler sync (hızlı, CPU-bound)
         chunks = []
         for match in results['matches']:
-            # Similarity threshold: 0.5'e çıkarıldı (daha alakalı sonuçlar)
             if match['score'] > 0.5:
                 chunks.append({
                     'text': match['metadata'].get('text', ''),
@@ -50,7 +61,7 @@ class ChatService:
         logger.info(f"Found {len(chunks)} relevant chunks (threshold: 0.5)")
         return chunks
     
-    def generate_answer(
+    async def generate_answer(
         self, 
         question: str, 
         context_chunks: List[Dict[str, Any]]
@@ -88,7 +99,7 @@ KURALLAR:
 Yukarıdaki dokümanlara dayanarak soruyu detaylı şekilde cevapla. Cevabını verirken hangi bilgiyi hangi kaynaktan aldığını belirt."""
         
         # OpenAI'ye gönder
-        response = self.openai_client.chat.completions.create(
+        response = await self.openai_client.chat.completions.create(
             model=settings.OPENAI_MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -113,28 +124,28 @@ Yukarıdaki dokümanlara dayanarak soruyu detaylı şekilde cevapla. Cevabını 
                 for chunk in sorted_chunks[:5]  # En alakalı 5'ini göster
             ]
         }
-    
-    def chat(self, question: str, namespace: str) -> Dict[str, Any]:
+        
+    async def chat(self, question: str, namespace: str) -> Dict[str, Any]:
         """Ana chat fonksiyonu"""
         
         logger.info(f"Chat question: {question[:100]}...")
         
-        # 1. Soruyu embedding'e çevir
-        query_embedding = self.create_query_embedding(question)
+        # 1. Soruyu embedding'e çevir (async)
+        query_embedding = await self.create_query_embedding(question)
         
-        # 2. İlgili chunk'ları bul
-        relevant_chunks = self.search_relevant_chunks(query_embedding, namespace)
+        # 2. İlgili chunk'ları bul (async + run_in_executor)
+        relevant_chunks = await self.search_relevant_chunks(query_embedding, namespace)
         
         if not relevant_chunks:
             logger.warning("No relevant chunks found")
             return {
-                "answer": "Üzgünüm, bu soruya cevap verebilecek ilgili bilgi verilen dokümanlarda bulamadım. Lütfen sorunuzu başka şekilde sormayı deneyin veya farklı dokümanlar yükleyin.",
+                "answer": "Üzgünüm, bu soruya cevap verebilecek ilgili bilgi verilen dokümanlarda bulamadım...",
                 "tokens_used": 0,
                 "sources": []
             }
         
-        # 3. GPT ile cevap oluştur
-        result = self.generate_answer(question, relevant_chunks)
+        # 3. GPT ile cevap oluştur (async)
+        result = await self.generate_answer(question, relevant_chunks)
         
         logger.info(f"Chat completed: {len(relevant_chunks)} chunks used, {result['tokens_used']} tokens")
         

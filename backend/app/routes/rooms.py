@@ -9,7 +9,7 @@ from app.utils import get_current_user_id
 router = APIRouter(prefix="/rooms", tags=["Rooms"])
 
 @router.post("", response_model=RoomResponse, status_code=status.HTTP_201_CREATED)
-def create_room(
+async def create_room(
     room_data: RoomCreate,
     user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
@@ -36,7 +36,7 @@ def create_room(
     return new_room
 
 @router.get("", response_model=List[RoomWithStats])
-def get_user_rooms(
+async def get_user_rooms(
     user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
@@ -65,7 +65,7 @@ def get_user_rooms(
     return rooms_with_stats
 
 @router.get("/{room_id}", response_model=RoomWithStats)
-def get_room(
+async def get_room(
     room_id: int,
     user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
@@ -98,7 +98,7 @@ def get_room(
     }
 
 @router.put("/{room_id}", response_model=RoomResponse)
-def update_room(
+async def update_room(
     room_id: int,
     room_data: RoomUpdate,
     user_id: int = Depends(get_current_user_id),
@@ -132,7 +132,7 @@ def update_room(
     return room
 
 @router.delete("/{room_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_room(
+async def delete_room(
     room_id: int,
     user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)

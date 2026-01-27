@@ -1,15 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Room, Message, User
 from app.schemas import ChatRequest, ChatResponse, MessageSource
 from app.utils import get_current_user_id
 from app.services.chat_service import chat_service
+from app.limiter import limiter
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
 @router.post("/{room_id}", response_model=ChatResponse)
-def chat_with_documents(
+@limiter.limit("10/day")
+async def chat_with_documents(
+    request: Request,
     room_id: int,
     chat_request: ChatRequest,
     user_id: int = Depends(get_current_user_id),
@@ -31,7 +34,7 @@ def chat_with_documents(
         )
     
     # Chat yap
-    result = chat_service.chat(
+    result = await chat_service.chat(
         question=chat_request.question,
         namespace=room.pinecone_namespace
     )
