@@ -74,15 +74,36 @@ async def upload_document(
     
     # Dosya boyutunu al
     file_size = file_path.stat().st_size
-    
+        
     # Dosya boyutu kontrolü
     if file_size > settings.MAX_FILE_SIZE:
-        file_path.unlink()  # Dosyayı sil
+        file_path.unlink()
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail=f"Dosya çok büyük. Maksimum: {settings.MAX_FILE_SIZE / (1024*1024):.1f} MB"
         )
-    
+
+    # Dosya içeriği kontrolü (karakter sayısı)
+    try:
+        from app.services.document_processor import document_processor
+        text = document_processor.extract_text(str(file_path))
+        
+        if not text or len(text.strip()) < 50:
+            file_path.unlink()  # Dosyayı sil
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Dosya içeriği yetersiz. {len(text.strip()) if text else 0} karakter bulundu, minimum 50 karakter gerekli."
+            )
+    except HTTPException:
+        raise  # HTTPException'ı tekrar fırlat
+    except Exception as e:
+        file_path.unlink()  # Hata varsa dosyayı sil
+        logger.error(f"Dosya okuma hatası: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Dosya okunamadı veya formatı desteklenmiyor."
+        )
+
     # Database'e kaydet
     new_document = Document(
         room_id=room_id,
