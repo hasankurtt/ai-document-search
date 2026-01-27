@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
 @router.post("/upload/{room_id}", response_model=DocumentUploadResponse, status_code=status.HTTP_201_CREATED)
-@limiter.limit("5/day")
+@limiter.limit("3/day")
 async def upload_document(
     request: Request,
     room_id: int,
@@ -47,10 +47,10 @@ async def upload_document(
         Room.user_id == user_id
     ).count()
 
-    if user_document_count >= 5:
+    if user_document_count >= 3:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Maksimum dosya limitine ulaştınız ({user_document_count}/5). Yeni dosya yüklemek için önce eski dosyaları silin."
+            detail=f"Maksimum dosya limitine ulaştınız ({user_document_count}/3). Yeni dosya yüklemek için önce eski dosyaları silin."
         )
 
     # Dosya validasyonu

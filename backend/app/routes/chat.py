@@ -10,7 +10,7 @@ from app.limiter import limiter
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
 @router.post("/{room_id}", response_model=ChatResponse)
-@limiter.limit("10/day")
+@limiter.limit("5/day")
 async def chat_with_documents(
     request: Request,
     room_id: int,
