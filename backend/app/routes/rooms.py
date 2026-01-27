@@ -18,6 +18,14 @@ async def create_room(
     Yeni oda oluştur
     """
     # Pinecone namespace oluştur (unique)
+    user_room_count = db.query(Room).filter(Room.user_id == user_id).count()
+    
+    if user_room_count >= 3:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Maksimum oda limitine ulaştınız ({user_room_count}/3). Yeni oda oluşturmak için önce eski odaları silin."
+        )
+
     import uuid
     namespace = f"room_{uuid.uuid4().hex[:8]}"
     

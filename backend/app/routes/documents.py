@@ -42,6 +42,17 @@ async def upload_document(
             detail="Oda bulunamadı"
         )
     
+    # Kullanıcının toplam dosya sayısı kontrolü (max 5)
+    user_document_count = db.query(Document).join(Room).filter(
+        Room.user_id == user_id
+    ).count()
+
+    if user_document_count >= 5:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Maksimum dosya limitine ulaştınız ({user_document_count}/5). Yeni dosya yüklemek için önce eski dosyaları silin."
+        )
+
     # Dosya validasyonu
     validate_upload_file(file)
     
