@@ -56,6 +56,19 @@ AI-powered intelligent document search and Q&A system. Enhanced with GPT-4 and P
 - **Cost optimization**: Designed for demo purposes with tight limits
 
 ## 🏗️ Technology Stack
+...
+
+## 📐 Architecture
+
+For detailed architecture diagrams including:
+- Current local development setup
+- Future AWS deployment with Nginx
+- Security flow and data processing
+
+See: **[Architecture Diagrams](docs/architecture.md)**
+
+## 📦 Installation
+...
 
 ### Backend
 - **Framework**: FastAPI 0.111.0 (Async)
