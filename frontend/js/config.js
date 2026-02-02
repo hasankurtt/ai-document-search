@@ -1,9 +1,10 @@
 // API Configuration
 const API_CONFIG = {
-    BASE_URL: 'http://54.237.122.154',
+    BASE_URL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://127.0.0.1:8001'                    // Local development
+        : 'http://YOUR_EC2_PUBLIC_IP_HERE',          // Production - REPLACE THIS before deploying
     API_PREFIX: '/api/v1',
-    
-    // Endpoints
+        // Endpoints
     AUTH: {
         LOGIN: '/auth/login',
         REGISTER: '/auth/register',
