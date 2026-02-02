@@ -4,7 +4,7 @@ const API_CONFIG = {
         ? 'http://127.0.0.1:8001'                    // Local development
         : 'http://YOUR_EC2_PUBLIC_IP_HERE',          // Production - REPLACE THIS before deploying
     API_PREFIX: '/api/v1',
-        // Endpoints
+    // Endpoints
     AUTH: {
         LOGIN: '/auth/login',
         REGISTER: '/auth/register',
