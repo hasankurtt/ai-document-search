@@ -20,6 +20,11 @@
                     </div>
                 </a>
 
+                <!-- Mobile Sidebar Toggle -->
+                <button class="btn-sidebar-toggle" id="sidebarToggle" onclick="document.querySelector('.room-sidebar').classList.toggle('open')">
+                    <span>☰</span>
+                </button>
+
                 <!-- Menu -->
                 <div class="nav-menu">
                     <a href="dashboard.html" class="nav-link">
@@ -108,9 +113,9 @@
                     </div>
                 </aside>
 
-                <!-- Chat Area - DÜZELTİLDİ -->
+                <!-- Chat Area -->
                 <div class="chat-area" style="display: flex; flex-direction: column; height: calc(100vh - 120px);">
-                    <!-- Chat Messages - Sabit yükseklik, scroll edilebilir -->
+                    <!-- Chat Messages -->
                     <div class="chat-messages" id="chatMessages" style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column;">
                         <!-- Welcome Message -->
                         <div class="welcome-message">
@@ -120,7 +125,7 @@
                         </div>
                     </div>
 
-                    <!-- Chat Input - Sabit boyut, alta yapışık -->
+                    <!-- Chat Input -->
                     <div class="chat-input-container" style="flex-shrink: 0;">
                         <form id="chatForm" class="chat-input-form">
                             <textarea 
@@ -174,12 +179,12 @@
                 <div class="form-group">
                     <label>Emoji</label>
                     <div class="emoji-selector">
-                        <div class="selected-emoji-display" onclick="toggleEmojiPickerSettings()">
-                            <div class="selected-emoji" id="selectedEmojiDisplaySettings">📚</div>
+                        <div class="selected-emoji-display" onclick="toggleEditEmojiPicker()">
+                            <div class="selected-emoji" id="selectedEditEmojiDisplay">📚</div>
                             <span>Değiştir</span>
                         </div>
                         
-                        <div class="emoji-picker-container hidden" id="emojiPickerContainerSettings">
+                        <div class="emoji-picker-container hidden" id="editEmojiPickerContainer">
                             <div class="emoji-search-bar">
                                 <input 
                                     type="text" 
@@ -197,12 +202,16 @@
                                 <button type="button" class="emoji-tab-settings" data-category="health">🏥</button>
                                 <button type="button" class="emoji-tab-settings" data-category="other">⭐</button>
                             </div>
-                            <div class="emoji-grid" id="emojiGridSettings">
+                            <div class="emoji-grid" id="editEmojiGrid">
                                 <!-- Emojis will be loaded here -->
                             </div>
                         </div>
                     </div>
-                    <input type="hidden" id="editRoomEmoji" value="📚">
+                    <input 
+                        type="hidden" 
+                        id="editRoomEmoji"
+                        value="📚"
+                    >
                 </div>
 
                 <div class="modal-actions">
