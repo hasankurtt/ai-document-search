@@ -56,7 +56,7 @@ An AI-powered intelligent document search and Q&A system. Built with GPT-4 and P
 ┌──────────────────────────────────┐
 │         AWS S3                   │
 │   Static Website Hosting         │
-│   (Frontend: HTML/CSS/JS)        │
+│   (Frontend: React + TypeScript) │
 │   <YOUR_S3_BUCKET>.s3-...    │
 └──────────────────────┬───────────┘
                        │ API calls (CORS)
@@ -94,9 +94,9 @@ An AI-powered intelligent document search and Q&A system. Built with GPT-4 and P
 
 ```
 ┌───────────┐     ┌───────────────┐     ┌──────────────┐
-│  Browser  │────▶│ Python HTTP   │     │   FastAPI    │
-│ :8080     │     │ Server        │     │   Uvicorn    │
-│           │     │ (Frontend)    │────▶│   :8001      │
+│  Browser  │────▶│  Vite Dev     │     │   FastAPI    │
+│ :5173     │     │  Server       │     │   Uvicorn    │
+│           │     │  (Frontend)   │────▶│   :8001      │
 └───────────┘     └───────────────┘     └──────┬───────┘
                                                │
                                     ┌──────────┼──────────┐
@@ -115,7 +115,7 @@ For detailed architecture diagrams including data flow and sequence diagrams, se
 
 | Layer | Technology |
 |-------|-----------|
-| **Frontend** | HTML5, CSS3, Vanilla JavaScript, Fetch API, LocalStorage |
+| **Frontend** | React 18, TypeScript, Vite, React Router v6, Axios |
 | **Backend Framework** | FastAPI 0.111.0 (Async) |
 | **Database** | PostgreSQL 16 + SQLAlchemy 2.0 |
 | **Vector Database** | Pinecone (Serverless) |
@@ -167,6 +167,7 @@ AWS infrastructure (EC2 t2.micro + RDS db.t3.micro): ~$17/month, covered by the 
 Before you begin, make sure you have the following:
 
 - **Python 3.12+** — [Download](https://www.python.org/downloads/)
+- **Node.js 18+** — [Download](https://nodejs.org/) (for frontend development)
 - **PostgreSQL 16** — [Download](https://www.postgresql.org/download/) (for local development)
 - **AWS CLI** — [Install](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) (for production deployment)
 - **API Keys:**
@@ -243,13 +244,14 @@ Open **Terminal 2**:
 
 ```bash
 cd frontend
-python3 -m http.server 8080
+npm install
+npm run dev
 ```
 
 ### 8. Open in Browser
 
 ```
-http://localhost:8080
+http://localhost:5173
 ```
 
 ### Local Pre-flight Checklist
@@ -260,28 +262,24 @@ http://localhost:8080
 - [ ] Pinecone index `ai-doc-search` exists (dim: 1536, metric: cosine)
 - [ ] Virtual environment is activated (`(venv)` visible in terminal prompt)
 - [ ] Backend is running on port 8001
-- [ ] Frontend HTTP server is running on port 8080
-- [ ] Browser is open at `http://localhost:8080`
+- [ ] Frontend dev server is running on port 5173
+- [ ] Browser is open at `http://localhost:5173`
 
-### How config.js Handles Local vs Production
+### How constants.ts Handles Local vs Production
 
-The frontend automatically detects where it's running using `window.location.hostname`:
+The frontend uses `constants.ts` to configure the API URL:
 
-```javascript
-// frontend/js/config.js
-const API_CONFIG = {
-    BASE_URL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://127.0.0.1:8001'          // Local backend
-        : 'http://<EC2_PUBLIC_IP>',          // Production backend (EC2)
-    API_PREFIX: '/api/v1',
-    // ...
-};
+```typescript
+// frontend/constants.ts
+export const API_BASE_URL = 'http://YOUR_EC2_IP/api/v1';
 ```
 
-- **Locally** (`localhost:8080`) → requests go to `http://127.0.0.1:8001`
-- **On S3** (`<YOUR_S3_BUCKET>.s3-website...`) → requests go to `http://<EC2_PUBLIC_IP>` (EC2 via Nginx)
+Before running locally, update `API_BASE_URL` to point to your local backend:
+```typescript
+export const API_BASE_URL = 'http://127.0.0.1:8001/api/v1';
+```
 
-This means you can commit `config.js` to GitHub without manually switching URLs between environments. No sensitive credentials are exposed — the EC2 IP is only the entry point to Nginx, which proxies to the backend.
+Before deploying to production, set it back to your EC2 IP. The placeholder `YOUR_EC2_IP` is committed to the repository — never commit the real IP.
 
 ---
 
@@ -293,7 +291,7 @@ This section documents the full production deployment as it currently exists.
 
 | Component | Service | Details |
 |-----------|---------|---------|
-| Frontend | AWS S3 | Static Website Hosting |
+| Frontend | AWS S3 | Static Website Hosting (React build output) |
 | Backend | AWS EC2 | Ubuntu 24.04, t2.micro |
 | Database | AWS RDS | PostgreSQL 16, db.t3.micro |
 | Reverse Proxy | Nginx | On EC2, proxies `/api/` → FastAPI |
@@ -489,14 +487,22 @@ curl http://localhost/health
 
 ### Step 10: Deploy Frontend to S3
 
-1. **AWS Console → S3 → Create Bucket**
+1. **Build the React app locally:**
+
+```bash
+cd frontend
+npm install
+npm run build
+```
+
+2. **AWS Console → S3 → Create Bucket**
    - **Bucket name:** `<YOUR_S3_BUCKET>` (must be globally unique)
    - **Region:** `us-east-1`
    - **Uncheck** "Block all public access"
-2. **Properties tab → Static website hosting → Enable**
+3. **Properties tab → Static website hosting → Enable**
    - Index document: `index.html`
    - Error document: `index.html`
-3. **Permissions tab → Bucket Policy** — Add this policy (replace `<YOUR_S3_BUCKET>` with your bucket name):
+4. **Permissions tab → Bucket Policy** — Add this policy (replace `<YOUR_S3_BUCKET>` with your bucket name):
 
 ```json
 {
@@ -513,13 +519,13 @@ curl http://localhost/health
 }
 ```
 
-4. Upload frontend files using AWS CLI:
+5. Upload the build output using AWS CLI:
 
 ```bash
-aws s3 sync ./frontend/ s3://<YOUR_S3_BUCKET>/
+aws s3 sync ./frontend/dist/ s3://<YOUR_S3_BUCKET>/ --delete
 ```
 
-5. Your frontend is now live at:
+6. Your frontend is now live at:
 ```
 http://<YOUR_S3_BUCKET>.s3-website-us-east-1.amazonaws.com
 ```
@@ -598,7 +604,7 @@ PINECONE_ENVIRONMENT=us-east-1-aws
 PINECONE_INDEX_NAME=document-search
 
 # CORS (Frontend URLs)
-CORS_ORIGINS=http://localhost:8080,http://127.0.0.1:8080
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 
 # App
 DEBUG=True
@@ -626,7 +632,7 @@ Each environment's `.env` only needs the origins relevant to that environment. D
 
 **Local (`backend/.env` on your machine):**
 ```
-CORS_ORIGINS=http://localhost:8080,http://127.0.0.1:8080
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
 
 **Production (`backend/.env` on EC2):**
@@ -679,25 +685,24 @@ ai-document-search/
 │   └── requirements.txt               # Python dependencies
 │
 ├── frontend/
-│   ├── index.html                     # Landing page (redirects to login)
-│   ├── login.html                     # Login & Register (tabbed interface)
-│   ├── register.html                  # Standalone register page
-│   ├── dashboard.html                 # Room list dashboard
-│   ├── room.html                      # Chat room (upload docs, ask questions)
-│   ├── profile.html                   # User profile
-│   ├── kvkk.html                      # Privacy policy (Turkish)
-│   ├── terms.html                     # Terms of service
-│   ├── css/
-│   │   └── style.css                  # Unified stylesheet
-│   ├── js/
-│   │   ├── config.js                  # API config + environment detection
-│   │   ├── api.js                     # Fetch wrapper for all API calls
-│   │   ├── auth.js                    # Login/Register logic + token management
-│   │   ├── dashboard.js               # Room management
-│   │   ├── room.js                    # Chat UI + document upload + polling
-│   │   └── profile.js                 # Profile page logic
-│   └── assets/
-│       └── images/                    # Static images
+│   ├── index.html                     # App entry point
+│   ├── index.tsx                      # React root
+│   ├── App.tsx                        # Router & route definitions
+│   ├── constants.ts                   # API URL & app-wide constants
+│   ├── types.ts                       # TypeScript type definitions
+│   ├── package.json                   # Node dependencies
+│   ├── tsconfig.json                  # TypeScript config
+│   ├── vite.config.ts                 # Vite build config
+│   ├── pages/
+│   │   ├── Login.tsx                  # Login & Register page
+│   │   ├── Dashboard.tsx              # Room list dashboard
+│   │   └── Room.tsx                   # Chat room (upload docs, ask questions)
+│   ├── components/
+│   │   └── UI.tsx                     # Shared UI components
+│   ├── context/
+│   │   └── AuthContext.tsx            # Auth state & JWT management
+│   └── services/
+│       └── api.ts                     # Axios instance & API call helpers
 │
 ├── nginx/
 │   └── nginx.conf                     # Nginx reverse proxy config (EC2 production)
@@ -804,7 +809,7 @@ The rate limiter resets every 24 hours. In development, you can temporarily incr
 If you see `Access-Control-Allow-Origin` errors in the browser console:
 
 1. **Check `CORS_ORIGINS` in `backend/.env`** — The frontend's origin must be in the list.
-   - Local: `http://localhost:8080`
+   - Local: `http://localhost:5173`
    - Production: The full S3 website URL
 2. **Do NOT add CORS headers in Nginx.** FastAPI handles CORS via `CORSMiddleware`. Adding headers in Nginx causes duplicate headers, which browsers reject.
 3. **Restart the backend** after changing `.env`:
