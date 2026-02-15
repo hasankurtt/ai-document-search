@@ -78,3 +78,6 @@ htmlcov/
 
 # Documentation
 docs/_build/
+
+frontend/node_modules/
+frontend/dist/
