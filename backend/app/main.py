@@ -5,13 +5,17 @@ from slowapi.errors import RateLimitExceeded
 from app.limiter import limiter
 from app.config import settings
 from app.routes import auth, rooms, documents, chat
-
+from app.database import Base, engine
 
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     debug=settings.DEBUG
 )
+
+@app.on_event("startup")
+def startup():
+    Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
