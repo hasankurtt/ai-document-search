@@ -1,5 +1,7 @@
 // Replace with your actual EC2 IP or domain in production
-export const API_BASE_URL = 'http://YOUR_EC2_IP/api/v1';
+// export const API_BASE_URL = 'http://YOUR_EC2_IP/api/v1';
+
+export const API_BASE_URL = 'http://localhost:8001/api/v1';
 
 export const MAX_FILE_SIZE_MB = 2;
 export const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;

@@ -8,6 +8,7 @@ An AI-powered intelligent document search and Q&A system. Built with GPT-4 and P
 [![OpenAI](https://img.shields.io/badge/OpenAI-GPT4-412391.svg)](https://openai.com/)
 [![Pinecone](https://img.shields.io/badge/Pinecone-Vector%20DB-blue.svg)](https://www.pinecone.io/)
 [![AWS](https://img.shields.io/badge/AWS-EC2%20%7C%20RDS%20%7C%20S3-FF9900.svg)](https://aws.amazon.com/)
+![CI](https://github.com/hasankurtt/ai-document-search/actions/workflows/ci.yml/badge.svg)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
