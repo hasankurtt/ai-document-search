@@ -41,7 +41,14 @@ jobs:
 
       - name: Clean volumes
         run: docker-compose down -v
-        
+
+      - name: Debug credentials
+        run: |
+          echo "POSTGRES_USER length: $(echo -n '${{ secrets.POSTGRES_USER }}' | wc -c)"
+          echo "POSTGRES_PASSWORD length: $(echo -n '${{ secrets.POSTGRES_PASSWORD }}' | wc -c)"
+          cat .env | grep POSTGRES_USER
+          cat backend/.env | grep DATABASE_URL | sed 's/:.*@/:***@/'
+          
       - name: Build Docker images
         run: docker-compose build
 
