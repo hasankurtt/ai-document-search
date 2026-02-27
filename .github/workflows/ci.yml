@@ -47,6 +47,10 @@ jobs:
 
       - name: Wait for backend
         run: sleep 10
+      
+      - name: Show backend logs
+        if: always()
+        run: docker-compose logs backend
 
       - name: Health check
         run: curl -f http://localhost:8001/health
