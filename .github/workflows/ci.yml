@@ -42,20 +42,18 @@ jobs:
       - name: Clean volumes
         run: docker-compose down -v
 
-      - name: Debug DB
-        run: |
-          docker ps -a
-          docker-compose logs db
-
       - name: Build Docker images
         run: docker-compose build
+
+      - name: Debug docker-compose config
+        run: docker-compose config | grep -A5 "db:"
 
       - name: Start services
         run: docker-compose up -d
 
       - name: Wait for backend
-        run: sleep 10
-      
+        run: sleep 15
+
       - name: Show backend logs
         if: always()
         run: docker-compose logs backend
