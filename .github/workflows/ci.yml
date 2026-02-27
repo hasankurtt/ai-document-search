@@ -45,9 +45,6 @@ jobs:
       - name: Build Docker images
         run: docker-compose build
 
-      - name: Debug docker-compose config
-        run: docker-compose config | grep -A5 "db:"
-
       - name: Start services
         run: docker-compose up -d
 
