@@ -44,7 +44,8 @@ jobs:
 
       - name: Debug DB
         run: |
-          docker-compose logs db | head -20
+          docker ps -a
+          docker-compose logs db
 
       - name: Build Docker images
         run: docker-compose build
