@@ -73,19 +73,19 @@ An AI-powered intelligent document search and Q&A system. Built with GPT-4 and P
 │  │  │   - Reverse proxy /api/ → backend:8001       │  │  │
 │  │  │   - SSL termination (Let's Encrypt)          │  │  │
 │  │  └──────────────────┬───────────────────────────┘  │  │
-│  │                     │ proxy_pass                    │  │
+│  │                     │ proxy_pass                   │  │
 │  │  ┌──────────────────▼───────────────────────────┐  │  │
 │  │  │   Backend Container (Port 8001)              │  │  │
 │  │  │   FastAPI + Uvicorn                          │  │  │
 │  │  └──────────────────┬───────────────────────────┘  │  │
-│  │                     │                               │  │
+│  │                     │                              │  │
 │  │  ┌──────────────────▼───────────────────────────┐  │  │
 │  │  │   PostgreSQL Container (Port 5432)           │  │  │
 │  │  │   Volume: postgres_data (persistent)         │  │  │
 │  │  └──────────────────────────────────────────────┘  │  │
 │  └────────────────────────────────────────────────────┘  │
 │                                                          │
-│  /etc/letsencrypt → mounted into Nginx container (ro)   │
+│  /etc/letsencrypt → mounted into Nginx container (ro)    │
 └──────────────────────────────────────────────────────────┘
                          │
               ┌──────────┼──────────┐
