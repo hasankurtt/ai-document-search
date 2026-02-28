@@ -47,6 +47,16 @@ An AI-powered intelligent document search and Q&A system. Built with GPT-4 and P
 - **HTTPS** — SSL/TLS via Let's Encrypt + Certbot
 - **CI/CD** — Automated testing and deployment via GitHub Actions with quality gates
 
+### Screenshots
+
+**AI answer with source references and match scores:**
+
+![Chat with sources](docs/screenshots/chat-with-sources.png)
+
+**Source chunks expanded — exact passage used to generate the answer:**
+
+![Source chunks expanded](docs/screenshots/source-chunks-expanded.png)
+
 ---
 
 ## 🏗️ Current Architecture (v2 — Docker + CI/CD + HTTPS)
