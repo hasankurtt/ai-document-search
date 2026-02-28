@@ -51,11 +51,11 @@ An AI-powered intelligent document search and Q&A system. Built with GPT-4 and P
 
 **AI answer with source references and match scores:**
 
-![Chat with sources](docs/screenshots/chat-with-sources.png)
+![Chat with sources](screenshots/chat-with-sources.png)
 
 **Source chunks expanded — exact passage used to generate the answer:**
 
-![Source chunks expanded](docs/screenshots/source-chunks-expanded.png)
+![Source chunks expanded](screenshots/source-chunks-expanded.png)
 
 ---
 
