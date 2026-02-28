@@ -113,7 +113,8 @@ Answer the question in detail based on the documents above. Cite which source ea
                 {
                     "document_id": chunk['document_id'],
                     "filename": chunk['filename'],
-                    "score": round(chunk['score'], 3)
+                    "score": round(chunk['score'], 3),
+                    "chunk_text": chunk['text']
                 }
                 for chunk in sorted_chunks[:5]
             ]

@@ -23,12 +23,15 @@ export interface DocumentFile {
   id: string;
   filename: string;
   uploaded_at: string;
+  created_at: string;
   processed: boolean;
 }
 
 export interface Source {
   filename: string;
   page?: number;
+  chunk_text?: string;
+  score?: number;
 }
 
 export interface Message {

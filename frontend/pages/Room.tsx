@@ -1,11 +1,41 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { roomApi, docApi, chatApi, getErrorMessage } from '../services/api';
-import { Room as RoomType, DocumentFile, Message } from '../types';
+import { Room as RoomType, DocumentFile, Message, Source } from '../types';
 import { MAX_DOCS_PER_ROOM, MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB, POLL_INTERVAL_MS } from '../constants';
 import { Button, Input, PageSpinner, Badge } from '../components/UI';
 import { Send, UploadCloud, File, Trash2, ArrowLeft, Bot, User as UserIcon, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+
+const SourceCard: React.FC<{ source: Source }> = ({ source }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-lg overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-white/5 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <File className="w-3 h-3 text-blue-400 flex-shrink-0" />
+          <span className="text-xs text-blue-300 font-medium">{source.filename}</span>
+          {source.score && (
+            <span className="text-xs text-gray-500">
+              {Math.round(source.score * 100)}% match
+            </span>
+          )}
+        </div>
+        <span className="text-gray-500 text-xs">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && source.chunk_text && (
+        <div className="px-3 pb-3">
+          <p className="text-xs text-gray-400 leading-relaxed border-t border-white/5 pt-2">
+            {source.chunk_text}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const Room: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -265,14 +295,13 @@ export const Room: React.FC = () => {
 
                   {/* Sources Display */}
                   {msg.sources && msg.sources.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">Sources:</span>
-                      {msg.sources.map((src, i) => (
-                        <span key={i} className="text-xs bg-white/5 px-2 py-1 rounded text-blue-300 border border-white/5 flex items-center">
-                          <File className="w-3 h-3 mr-1" />
-                          {src.filename} {src.page ? `(p. ${src.page})` : ''}
-                        </span>
-                      ))}
+                    <div className="mt-3 w-full">
+                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-2">Sources</p>
+                      <div className="space-y-2">
+                        {msg.sources.map((src, i) => (
+                          <SourceCard key={i} source={src} />
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
