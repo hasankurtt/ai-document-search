@@ -39,12 +39,13 @@ An AI-powered intelligent document search and Q&A system. Built with GPT-4 and P
 
 - **Document Upload & Processing** — Upload PDF/TXT files, automatically extracted, chunked, and embedded into a vector database
 - **AI-Powered Q&A** — Ask questions about your documents and get GPT-4 generated answers with source references
+- **Source Chunk Preview** — Every AI answer shows which document chunks were used as sources, with relevance score and full text expandable on click
 - **Room-Based Organization** — Create separate rooms to organize documents and conversations by topic
 - **Real-Time Processing Status** — Frontend polls every 3 seconds to track document processing progress
 - **User Authentication** — Secure JWT-based registration and login system
 - **Rate Limiting** — IP and user-based throttling to control costs and prevent abuse
 - **HTTPS** — SSL/TLS via Let's Encrypt + Certbot
-- **CI/CD** — Automated testing and deployment via GitHub Actions
+- **CI/CD** — Automated testing and deployment via GitHub Actions with quality gates
 
 ---
 
@@ -103,40 +104,40 @@ An AI-powered intelligent document search and Q&A system. Built with GPT-4 and P
 - **Nginx serves everything** — The Nginx container serves the React static build AND proxies `/api/` requests to the backend container. No S3 needed.
 - **HTTPS via Let's Encrypt** — Certbot issues a free SSL certificate for `aidocs.hasankurt.com`. The certificate directory (`/etc/letsencrypt`) is mounted read-only into the Nginx container.
 - **HTTP → HTTPS redirect** — Nginx listens on port 80 and issues a 301 redirect to HTTPS.
-- **CI/CD via GitHub Actions** — Two workflows: `ci.yml` (runs on every push, builds and health-checks all containers) and `cd.yml` (runs on `main` branch, SSHes into EC2 and deploys).
+- **CI/CD via GitHub Actions** — `ci.yml` runs 4 parallel quality gates on every push. `cd.yml` triggers automatically only after CI passes on `main`.
 
 ### CI/CD Pipeline
 
 ```
-Developer Push
-     │
-     ├──▶ feature/* branch
-     │         │
-     │         ▼
-     │    CI Workflow (ci.yml)
-     │    - Checkout code
-     │    - Create .env files from GitHub Secrets
-     │    - docker-compose build
-     │    - docker-compose up -d
-     │    - Health check: curl /health
-     │         │
-     │         ▼
-     │    ✅ CI passes → open PR to main
-     │
-     └──▶ main branch (after merge)
-               │
-               ▼
-          CI + CD Workflows
-          CD (cd.yml):
-          - Add runner IP to EC2 security group
-          - SSH into EC2
-          - git pull origin main
-          - docker-compose down
-          - docker-compose up --build -d
-          - Remove runner IP from security group
-               │
-               ▼
-          ✅ Live at https://aidocs.hasankurt.com
+Developer Push → main
+        │
+        ▼
+CI Workflow — 4 parallel jobs:
+┌──────────┐ ┌──────────┐ ┌──────────────────────┐
+│  lint    │ │security  │ │  test                │
+│ flake8   │ │ bandit   │ │  pytest + PostgreSQL │
+│  black   │ │npm audit │ │  service container   │
+└────┬─────┘ └────┬─────┘ └──────────┬───────────┘
+     └────────────┴──────────┬────────┘
+                             ▼
+                      ┌──────────────┐
+                      │    build     │
+                      │docker-compose│
+                      │health check  │
+                      └──────────────┘
+                             │
+              (only if CI conclusion == success)
+                             ▼
+                 CD Workflow (workflow_run trigger):
+                 - Add runner IP to EC2 security group
+                 - SSH into EC2
+                 - git pull origin main
+                 - docker-compose down
+                 - docker-compose up --build -d
+                 - Remove runner IP from security group
+                             │
+                             ▼
+                 ✅ Live at https://aidocs.hasankurt.com
 ```
 
 ### Local Development Architecture
@@ -173,7 +174,7 @@ Developer Push
 | **Containerization** | Docker + Docker Compose |
 | **Reverse Proxy** | Nginx (Docker container) |
 | **SSL** | Let's Encrypt + Certbot |
-| **CI/CD** | GitHub Actions |
+| **CI/CD** | GitHub Actions (lint, security, test, build, deploy) |
 | **DNS** | AWS Route 53 |
 | **Cloud** | AWS EC2 |
 
@@ -294,6 +295,8 @@ docker-compose up --build
 
 Open: `http://localhost`
 
+> **Note:** Running locally with Docker requires HTTP-only nginx.conf since SSL certificates are only present on EC2. Swap `frontend/nginx.conf` to the HTTP-only version for local testing.
+
 ### Docker Compose Services
 
 | Service | Image | Port |
@@ -305,6 +308,21 @@ Open: `http://localhost`
 ---
 
 ## ⚙️ CI/CD Pipeline
+
+### Overview
+
+The pipeline is split into two workflows with a strict dependency gate: **CD never runs unless CI passes**.
+
+`ci.yml` runs on every push to any branch with 4 parallel jobs:
+
+| Job | What it does |
+|-----|-------------|
+| `lint` | flake8 (code style) + black (formatting check) |
+| `security` | bandit (Python security scan) + npm audit (frontend) |
+| `test` | pytest with a live PostgreSQL service container |
+| `build` | docker-compose build + health check (runs only after lint, security, test all pass) |
+
+`cd.yml` is triggered by `workflow_run` — it listens for CI to complete and only proceeds if the conclusion is `success`.
 
 ### GitHub Secrets Required
 
@@ -325,18 +343,12 @@ Open: `http://localhost`
 | `EC2_USER` | EC2 SSH user (ubuntu) |
 | `EC2_SSH_KEY` | EC2 SSH private key (.pem contents) |
 
-### Workflows
+### Why This Approach
 
-**CI (`ci.yml`)** — Runs on every push to any branch:
-1. Creates `.env` files from GitHub Secrets
-2. Builds Docker images
-3. Starts all containers
-4. Runs health check: `curl http://localhost:8001/health`
-
-**CD (`cd.yml`)** — Runs on push to `main` only:
-1. Adds GitHub Actions runner IP to EC2 security group (SSH port 22)
-2. SSHes into EC2 and runs `git pull && docker-compose up --build -d`
-3. Removes runner IP from security group (always, even on failure)
+- **Parallel jobs** — lint, security, and tests run simultaneously, not sequentially. Faster feedback.
+- **PostgreSQL service container** — Tests run against a real PostgreSQL instance, not SQLite mocks. Same engine as production.
+- **CD gate** — Using `workflow_run` instead of `push` to `main` ensures broken code can never reach EC2, even if someone pushes directly to main.
+- **Dynamic IP management** — GitHub Actions runner IPs are ephemeral. The CD workflow adds the runner IP to the EC2 security group before SSH, then removes it after (always, even on failure).
 
 ---
 
@@ -402,8 +414,8 @@ LOG_LEVEL=INFO
 ai-document-search/
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml                     # CI: build + health check on every push
-│       └── cd.yml                     # CD: deploy to EC2 on main branch
+│       ├── ci.yml                     # CI: lint, security, test, build (parallel)
+│       └── cd.yml                     # CD: deploy to EC2 (triggered by CI success)
 │
 ├── backend/
 │   ├── app/
@@ -415,6 +427,11 @@ ai-document-search/
 │   │   ├── schemas/                   # Pydantic schemas
 │   │   ├── routes/                    # API route handlers
 │   │   └── services/                  # Business logic (RAG, processing)
+│   ├── tests/
+│   │   ├── __init__.py
+│   │   ├── conftest.py                # pytest fixtures (PostgreSQL test DB)
+│   │   ├── test_auth.py               # Auth endpoint tests
+│   │   └── test_rooms.py              # Room endpoint tests
 │   ├── Dockerfile
 │   ├── .env                           # Not committed — create manually
 │   └── requirements.txt
@@ -426,6 +443,9 @@ ai-document-search/
 │   ├── Dockerfile                     # Multi-stage: node build → nginx serve
 │   ├── nginx.conf                     # Nginx config: HTTPS + API proxy
 │   ├── pages/
+│   │   ├── Login.tsx
+│   │   ├── Dashboard.tsx
+│   │   └── Room.tsx                   # Chat UI with source chunk preview
 │   ├── components/
 │   ├── context/
 │   └── services/
@@ -511,7 +531,9 @@ All endpoints are prefixed with `/api/v1`.
 3. Pinecone queried for top 5 most similar chunks (cosine similarity)
 4. Retrieved chunks + question sent to GPT-4
 5. GPT-4 generates a grounded answer with source references
-6. Question and answer saved to database
+6. Response includes `chunk_text` and `score` for each source
+7. Frontend displays expandable source cards under the answer — click to reveal the exact passage used
+8. Question and answer saved to database
 
 ---
 
@@ -546,6 +568,15 @@ If the EC2 IP changes (after stop/start without Elastic IP):
 2. Update `EC2_HOST` in GitHub Secrets
 3. Update `VITE_API_BASE_URL` in EC2 root `.env` and rebuild
 
+### Disk Space on EC2
+
+Docker image layers accumulate over time. If builds fail with "No space left on device":
+
+```bash
+docker system prune -af
+df -h
+```
+
 ---
 
 ## 🗂️ Previous Architecture (v1)
@@ -559,7 +590,7 @@ If the EC2 IP changes (after stop/start without Elastic IP):
 │                        USER                             │
 │                    (Browser)                            │
 └──────────────────────┬──────────────────────────────────┘
-                       │ HTTPS
+                       │ HTTP only
                        ▼
 ┌──────────────────────────────────┐
 │         AWS S3                   │
@@ -607,7 +638,10 @@ If the EC2 IP changes (after stop/start without Elastic IP):
 | Nginx | System service | Docker container |
 | HTTPS | ❌ | ✅ Let's Encrypt |
 | Custom domain | ❌ | ✅ aidocs.hasankurt.com |
-| CI/CD | ❌ | ✅ GitHub Actions |
+| CI/CD | ❌ | ✅ GitHub Actions (4 parallel jobs + CD gate) |
+| Unit tests | ❌ | ✅ pytest with PostgreSQL service |
+| Security scan | ❌ | ✅ bandit + npm audit |
+| Source transparency | ❌ | ✅ Chunk preview with relevance score |
 | Monthly cost | ~$25-30 | ~$12 |
 
 ---
