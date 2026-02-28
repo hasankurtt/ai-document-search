@@ -8,6 +8,7 @@ class MessageSource(BaseModel):
     filename: str
     page_number: Optional[int] = None
     chunk_text: Optional[str] = None
+    score: Optional[float] = None
 
 # Chat Request (kullanıcının sorusu)
 class ChatRequest(BaseModel):
